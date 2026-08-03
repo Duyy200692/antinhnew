@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { DishItem, ShopInfo } from '../types';
@@ -14,6 +14,19 @@ export const storage = getStorage(app);
 const DISHES_DOC_REF = () => doc(db, 'settings', 'menu_dishes_list');
 const SHOP_INFO_DOC_REF = () => doc(db, 'settings', 'shop_info');
 const ADMIN_AUTH_DOC_REF = () => doc(db, 'settings', 'admin_auth');
+
+/**
+ * Real-time subscriber for dishes from Firestore
+ */
+export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => void) {
+  return onSnapshot(DISHES_DOC_REF(), (snap) => {
+    if (snap.exists() && snap.data()?.list) {
+      callback(snap.data().list as DishItem[]);
+    }
+  }, (err) => {
+    console.error('Error listening to dishes from Firestore:', err);
+  });
+}
 
 /**
  * Load admin password from Firestore

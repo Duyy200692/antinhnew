@@ -22,6 +22,7 @@ import { useShopInfo } from './utils/shopInfoStorage';
 import {
   loadDishesFromFirestore,
   syncDishesToFirestore,
+  subscribeDishesFromFirestore,
   loadShopInfoFromFirestore,
   syncShopInfoToFirestore,
   loadAdminPasswordFromFirestore,
@@ -63,7 +64,7 @@ export default function App() {
     return INITIAL_DISHES;
   });
 
-  // Load cloud data from Firestore on mount
+  // Load cloud data from Firestore on mount & subscribe to real-time updates
   useEffect(() => {
     async function initFirestoreData() {
       const cloudPass = await loadAdminPasswordFromFirestore();
@@ -84,6 +85,18 @@ export default function App() {
       }
     }
     initFirestoreData();
+
+    // Real-time listener: when any device adds or edits a dish or image, update state instantly
+    const unsubscribe = subscribeDishesFromFirestore((updatedDishes) => {
+      if (updatedDishes && updatedDishes.length > 0) {
+        setDishes(updatedDishes);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDishes));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Persist dishes whenever changed
