@@ -18,7 +18,7 @@ import { ShopInfoModal } from './components/ShopInfoModal';
 import { WeeklyOverviewModal } from './components/WeeklyOverviewModal';
 import { AdminModal } from './components/AdminModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
-import { useShopInfo } from './utils/shopInfoStorage';
+import { useShopInfo, saveStoredShopInfo } from './utils/shopInfoStorage';
 import {
   loadDishesFromFirestore,
   syncDishesToFirestore,
@@ -79,13 +79,12 @@ export default function App() {
         setDishes(cloudDishes);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudDishes));
       } else {
-        // Tự động đẩy dữ liệu danh sách món khởi tạo ban đầu lên Firestore
-        await syncDishesToFirestore(dishes);
+        await syncDishesToFirestore(INITIAL_DISHES);
       }
 
       const cloudShopInfo = await loadShopInfoFromFirestore();
       if (cloudShopInfo) {
-        saveShopInfo(cloudShopInfo);
+        saveStoredShopInfo(cloudShopInfo, false);
       } else {
         await syncShopInfoToFirestore(shopInfo);
       }
@@ -108,7 +107,7 @@ export default function App() {
     // Real-time listener: when any device edits shop info, update state instantly
     const unsubscribeShop = subscribeShopInfoFromFirestore((updatedShopInfo) => {
       if (updatedShopInfo) {
-        saveShopInfo(updatedShopInfo);
+        saveStoredShopInfo(updatedShopInfo, false);
       }
     });
 
@@ -117,25 +116,6 @@ export default function App() {
       unsubscribeShop();
     };
   }, []);
-
-  // Persist dishes whenever changed
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dishes));
-      syncDishesToFirestore(dishes);
-    } catch (e) {
-      console.error('Failed to save dishes to localStorage', e);
-    }
-  }, [dishes]);
-
-  // Persist shopInfo whenever changed
-  useEffect(() => {
-    try {
-      syncShopInfoToFirestore(shopInfo);
-    } catch (e) {
-      console.error('Failed to save shop info to Firestore', e);
-    }
-  }, [shopInfo]);
 
   // Filter States
   const [selectedDay, setSelectedDay] = useState<DayOfWeek | 'today'>('today');
@@ -219,6 +199,7 @@ export default function App() {
         }
         return dish;
       });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
       syncDishesToFirestore(updatedList);
       return updatedList;
     });
@@ -233,6 +214,7 @@ export default function App() {
       } else {
         updatedList = [savedDish, ...prev];
       }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
       syncDishesToFirestore(updatedList);
       return updatedList;
     });
@@ -241,6 +223,7 @@ export default function App() {
   const handleDeleteDish = (dishId: string) => {
     setDishes((prev) => {
       const updatedList = prev.filter((d) => d.id !== dishId);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
       syncDishesToFirestore(updatedList);
       return updatedList;
     });

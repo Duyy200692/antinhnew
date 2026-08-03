@@ -18,12 +18,13 @@ export function getStoredShopInfo(): ShopInfo {
   return DEFAULT_SHOP_INFO;
 }
 
-export function saveStoredShopInfo(newInfo: ShopInfo): void {
+export function saveStoredShopInfo(newInfo: ShopInfo, syncToCloud = true): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newInfo));
     window.dispatchEvent(new Event(EVENT_NAME));
-    // Đồng bộ trực tiếp lên Firestore database
-    syncShopInfoToFirestore(newInfo);
+    if (syncToCloud) {
+      syncShopInfoToFirestore(newInfo);
+    }
   } catch (e) {
     console.error('Failed to save shop info to localStorage or Firestore', e);
   }
