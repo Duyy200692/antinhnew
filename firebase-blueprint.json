@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "Dish": {
+      "title": "Dish",
+      "description": "A vegetarian dish item in the kitchen menu",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "isAvailableToday": { "type": "boolean" },
+        "soldOutNote": { "type": "string" },
+        "unit": { "type": "string" }
+      },
+      "required": ["id", "name", "price", "category", "image"]
+    },
+    "ShopInfo": {
+      "title": "ShopInfo",
+      "description": "Information and operating hours of the shop",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "openHours": { "type": "string" },
+        "slogan": { "type": "string" }
+      },
+      "required": ["name", "address", "phone"]
+    }
+  },
+  "firestore": {
+    "/dishes/{dishId}": {
+      "schema": { "$ref": "#/entities/Dish" },
+      "description": "Collection of vegetarian dishes"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/ShopInfo" },
+      "description": "Shop settings document"
+    }
+  }
+}

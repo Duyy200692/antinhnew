@@ -1,0 +1,8 @@
+{
+  "name": "Remix Menu Chay An Tịnh",
+  "description": "Ứng dụng menu chay nội bộ An Tịnh với danh sách món làm sẵn cố định cả tuần và món chính thay đổi theo ngày, hỗ trợ hình ảnh và quản lý món ăn.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
