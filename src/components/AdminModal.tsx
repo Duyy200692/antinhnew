@@ -71,6 +71,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [formPhone, setFormPhone] = useState(shopInfo.phone);
   const [formContactPerson, setFormContactPerson] = useState(shopInfo.contactPerson);
   const [formOpenHours, setFormOpenHours] = useState(shopInfo.openHours);
+  const [formOrderHours, setFormOrderHours] = useState(shopInfo.orderHours || 'Báo suất món chính trước 09h00 sáng | Đặt xôi & tiệc trước 1 ngày');
   const [formSlogan, setFormSlogan] = useState(shopInfo.slogan);
   const [formNotice, setFormNotice] = useState(
     shopInfo.notice ||
@@ -88,6 +89,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setFormPhone(shopInfo.phone);
       setFormContactPerson(shopInfo.contactPerson);
       setFormOpenHours(shopInfo.openHours);
+      setFormOrderHours(shopInfo.orderHours || 'Báo suất món chính trước 09h00 sáng | Đặt xôi & tiệc trước 1 ngày');
       setFormSlogan(shopInfo.slogan);
       setFormNotice(
         shopInfo.notice ||
@@ -138,6 +140,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       phone: formPhone,
       contactPerson: formContactPerson,
       openHours: formOpenHours,
+      orderHours: formOrderHours,
       slogan: formSlogan,
       notice: formNotice,
       zaloUrl: formZaloUrl,
@@ -594,14 +597,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               <div>
                 <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A]/70 mb-1">
-                  Giờ Mở Cửa Phục Vụ
+                  Giờ Mở Cửa Phục Vụ *
                 </label>
                 <input
                   type="text"
                   value={formOpenHours}
                   onChange={(e) => setFormOpenHours(e.target.value)}
                   placeholder="VD: 06:30 - 20:30 (Thứ 2 - Chủ Nhật)"
-                  className="w-full px-4 py-2.5 rounded-sm bg-[#F4F1EA] border border-black/10 text-[#1A1A1A] text-sm focus:outline-none focus:ring-1 focus:ring-[#C05A3D] font-sans"
+                  className="w-full px-4 py-2.5 rounded-sm bg-[#F4F1EA] border border-black/10 text-[#1A1A1A] text-sm focus:outline-none focus:ring-1 focus:ring-[#C05A3D] font-sans font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#C05A3D] mb-1">
+                  Thời Gian Nhận Đặt Món & Báo Suất *
+                </label>
+                <input
+                  type="text"
+                  value={formOrderHours}
+                  onChange={(e) => setFormOrderHours(e.target.value)}
+                  placeholder="VD: Báo suất món chính trước 09h00 sáng | Đặt xôi cúng trước 1 ngày"
+                  className="w-full px-4 py-2.5 rounded-sm bg-[#F4F1EA] border border-[#C05A3D]/40 text-[#1A1A1A] text-sm focus:outline-none focus:ring-1 focus:ring-[#C05A3D] font-sans font-medium"
                 />
               </div>
 

@@ -28,6 +28,7 @@ export interface ShopInfo {
   phone: string;
   contactPerson: string;
   openHours: string;
+  orderHours?: string;
   slogan: string;
   badgeText?: string;
   notice?: string;

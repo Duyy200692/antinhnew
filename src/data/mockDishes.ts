@@ -486,6 +486,7 @@ export const SHOP_INFO: ShopInfo = {
   phone: '0909 310 567',
   contactPerson: 'Ms. Bình',
   openHours: '06:30 - 20:30 (Thứ 2 - Chủ Nhật)',
+  orderHours: 'Báo suất món chính trước 09h00 sáng | Đặt xôi & tiệc trước 1 ngày',
   slogan: 'Chúc quý khách có một sức khoẻ tốt. Nơi cung cấp món chay làm sẵn & xôi nếp cái hoa vàng chuẩn vị.',
   notice: 'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.',
   zaloUrl: 'https://zalo.me/0909310567',

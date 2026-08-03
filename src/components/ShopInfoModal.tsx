@@ -63,16 +63,27 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
                 <span>Giờ Bếp Mở Cửa</span>
               </div>
               <p className="text-sm font-serif font-bold text-[#1A1A1A]">{shopInfo.openHours}</p>
-              <p className="text-xs text-[#1A1A1A]/60 mt-1">Phục vụ các ngày từ Thứ 2 - Chủ Nhật</p>
+              <p className="text-xs text-[#1A1A1A]/60 mt-1">Phục vụ các ngày trong tuần</p>
             </div>
 
             <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5">
+              <div className="flex items-center gap-2 mb-2 text-xs font-sans uppercase tracking-wider font-bold text-[#C05A3D]">
+                <Info className="w-4 h-4 text-[#C05A3D]" />
+                <span>Thời Gian Báo Đặt Món</span>
+              </div>
+              <p className="text-sm font-serif font-bold text-[#1A1A1A]">
+                {shopInfo.orderHours || 'Báo suất món chính trước 09h00 sáng hàng ngày'}
+              </p>
+              <p className="text-xs text-[#1A1A1A]/60 mt-1">Báo số lượng sớm để bếp chuẩn bị</p>
+            </div>
+
+            <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5 sm:col-span-2">
               <div className="flex items-center gap-2 mb-2 text-xs font-sans uppercase tracking-wider font-bold text-[#2D463E]">
                 <Phone className="w-4 h-4" />
-                <span>Người Phụ Trách</span>
+                <span>Người Phụ Trách & Hotline</span>
               </div>
               <p className="text-sm font-serif font-bold text-[#1A1A1A]">{shopInfo.contactPerson}</p>
-              <p className="text-xs text-[#1A1A1A]/80 font-mono mt-1">SĐT/Zalo: {shopInfo.phone}</p>
+              <p className="text-xs text-[#1A1A1A]/80 font-mono mt-1">SĐT/Zalo đặt món: {shopInfo.phone}</p>
             </div>
           </div>
 
