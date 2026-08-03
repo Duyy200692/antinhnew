@@ -41,7 +41,10 @@ export default function App() {
 
   // Admin Auth States
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
-    return sessionStorage.getItem(ADMIN_AUTH_SESSION_KEY) === 'true';
+    return (
+      localStorage.getItem(ADMIN_AUTH_SESSION_KEY) === 'true' ||
+      sessionStorage.getItem(ADMIN_AUTH_SESSION_KEY) === 'true'
+    );
   });
 
   const [adminPassword, setAdminPassword] = useState<string>(() => {
@@ -151,11 +154,13 @@ export default function App() {
   const [editingDish, setEditingDish] = useState<DishItem | null>(null);
   const [isShopInfoModalOpen, setIsShopInfoModalOpen] = useState<boolean>(false);
   const [isWeeklyOverviewModalOpen, setIsWeeklyOverviewModalOpen] = useState<boolean>(false);
+  const [adminModalTab, setAdminModalTab] = useState<'dishes' | 'shop' | 'password'>('dishes');
 
   // Admin Auth Handlers
   const handleAdminLogin = useCallback((inputPassword: string): boolean => {
     if (inputPassword === adminPassword) {
       setIsAdminLoggedIn(true);
+      localStorage.setItem(ADMIN_AUTH_SESSION_KEY, 'true');
       sessionStorage.setItem(ADMIN_AUTH_SESSION_KEY, 'true');
       return true;
     }
@@ -164,7 +169,10 @@ export default function App() {
 
   const handleAdminLogout = useCallback(() => {
     setIsAdminLoggedIn(false);
+    localStorage.removeItem(ADMIN_AUTH_SESSION_KEY);
     sessionStorage.removeItem(ADMIN_AUTH_SESSION_KEY);
+    setIsAdminModalOpen(false);
+    setToastMessage('Đã đăng xuất khỏi quyền Admin. Chuyển sang Chế độ Khách xem.');
   }, []);
 
   const handleChangeAdminPassword = useCallback((oldPass: string, newPass: string) => {
@@ -185,6 +193,13 @@ export default function App() {
       setIsAdminLoginModalOpen(true);
     }
   }, [isAdminLoggedIn]);
+
+  const handleOpenAdminModal = useCallback((tab: 'dishes' | 'shop' | 'password' = 'dishes') => {
+    setAdminModalTab(tab);
+    requireAdminLogin(() => {
+      setIsAdminModalOpen(true);
+    });
+  }, [requireAdminLogin]);
 
   // Reset category filter when switching days
   const handleSelectDay = (day: DayOfWeek | 'today') => {
@@ -330,11 +345,7 @@ export default function App() {
         }}
         onOpenShopInfoModal={() => setIsShopInfoModalOpen(true)}
         onOpenWeeklyOverviewModal={() => setIsWeeklyOverviewModalOpen(true)}
-        onOpenAdminModal={() => {
-          requireAdminLogin(() => {
-            setIsAdminModalOpen(true);
-          });
-        }}
+        onOpenAdminModal={(tab) => handleOpenAdminModal(tab || 'dishes')}
         isAdminLoggedIn={isAdminLoggedIn}
         onRequireAdminLogin={requireAdminLogin}
         onLogoutAdmin={handleAdminLogout}
@@ -526,11 +537,7 @@ export default function App() {
         isOpen={isShopInfoModalOpen}
         onClose={() => setIsShopInfoModalOpen(false)}
         shopInfo={shopInfo}
-        onOpenAdminModal={() => {
-          requireAdminLogin(() => {
-            setIsAdminModalOpen(true);
-          });
-        }}
+        onOpenAdminModal={(tab) => handleOpenAdminModal(tab || 'shop')}
       />
 
       {/* Weekly Overview Modal */}
@@ -545,6 +552,7 @@ export default function App() {
       <AdminModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
+        initialTab={adminModalTab}
         dishes={dishes}
         onToggleStock={handleToggleStock}
         onEditDish={(dish) => {

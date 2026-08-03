@@ -7,7 +7,7 @@ interface ShopInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
   shopInfo?: ShopInfo;
-  onOpenAdminModal?: () => void;
+  onOpenAdminModal?: (tab?: 'dishes' | 'shop' | 'password') => void;
 }
 
 export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
@@ -134,7 +134,7 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
               type="button"
               onClick={() => {
                 onClose();
-                onOpenAdminModal();
+                onOpenAdminModal('shop');
               }}
               className="px-4 py-2 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] font-sans uppercase tracking-wider font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >

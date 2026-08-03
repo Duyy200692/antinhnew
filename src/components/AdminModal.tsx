@@ -29,6 +29,7 @@ import {
 interface AdminModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: 'dishes' | 'shop' | 'password';
   dishes: DishItem[];
   onToggleStock: (dishId: string, soldOutNote?: string) => void;
   onEditDish: (dish: DishItem) => void;
@@ -45,6 +46,7 @@ interface AdminModalProps {
 export const AdminModal: React.FC<AdminModalProps> = ({
   isOpen,
   onClose,
+  initialTab = 'dishes',
   dishes,
   onToggleStock,
   onEditDish,
@@ -57,7 +59,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   onLogoutAdmin,
   onChangeAdminPassword,
 }) => {
-  const [activeTab, setActiveTab] = useState<'dishes' | 'shop' | 'password'>('dishes');
+  const [activeTab, setActiveTab] = useState<'dishes' | 'shop' | 'password'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<DishCategory | 'all'>('all');
   const [stockFilter, setStockFilter] = useState<'all' | 'available' | 'sold_out'>('all');
@@ -80,9 +82,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [formZaloUrl, setFormZaloUrl] = useState(shopInfo.zaloUrl || '');
   const [shopSaveSuccess, setShopSaveSuccess] = useState(false);
 
-  // Synchronize form state whenever modal is opened or shopInfo updates
+  // Synchronize form state and activeTab whenever modal is opened or shopInfo updates
   React.useEffect(() => {
     if (isOpen) {
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
       setFormName(shopInfo.name);
       setFormBadgeText(shopInfo.badgeText || 'Bếp Nội Bộ');
       setFormAddress(shopInfo.address);

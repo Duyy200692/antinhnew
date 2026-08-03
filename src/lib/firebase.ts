@@ -8,21 +8,45 @@ import { DishItem, ShopInfo } from '../types';
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Khởi tạo Firestore và Firebase Storage an toàn
-let firestoreDb;
+let primaryDb;
+let defaultDb;
+
+try {
+  defaultDb = getFirestore(app);
+} catch (e) {
+  console.warn('Error initializing default Firestore:', e);
+}
+
 try {
   const dbId = (firebaseConfig as any).firestoreDatabaseId;
   if (dbId && dbId !== '(default)') {
-    firestoreDb = getFirestore(app, dbId);
+    primaryDb = getFirestore(app, dbId);
   } else {
-    firestoreDb = getFirestore(app);
+    primaryDb = defaultDb;
   }
 } catch (e) {
-  console.warn('Error initializing named Firestore database, falling back to default:', e);
-  firestoreDb = getFirestore(app);
+  console.warn('Error initializing named Firestore database:', e);
+  primaryDb = defaultDb;
 }
 
-export const db = firestoreDb;
+export const db = primaryDb || defaultDb;
 export const storage = getStorage(app);
+
+// Helper function to setDoc on both database instances (primary & default)
+async function dualSetDoc(pathSegments: string[], data: any): Promise<void> {
+  const tasks: Promise<any>[] = [];
+  if (db) {
+    tasks.push(setDoc(doc(db, pathSegments[0], ...pathSegments.slice(1)), data));
+  }
+  if (defaultDb && defaultDb !== db) {
+    try {
+      tasks.push(setDoc(doc(defaultDb, pathSegments[0], ...pathSegments.slice(1)), data));
+    } catch (e) {
+      // Ignore if defaultDb fails
+    }
+  }
+  await Promise.allSettled(tasks);
+}
 
 // Các vị trí lưu trữ Firestore (hỗ trợ cả settings collection và root collections)
 const DISHES_DOC_REF = () => doc(db, 'settings', 'menu_dishes_list');
@@ -101,55 +125,69 @@ export function parseDishesFromSnapData(data: any): DishItem[] | null {
  * Lắng nghe biến động đồng thời ở tất cả các vị trí để đảm bảo mọi thiết bị đều nhận dữ liệu ngay lập tức
  */
 export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => void) {
-  const unsub1 = onSnapshot(
-    DISHES_DOC_REF(),
-    (snap) => {
-      if (snap.exists()) {
-        const dishes = parseDishesFromSnapData(snap.data());
-        if (dishes && dishes.length > 0) callback(dishes);
-      }
-    },
-    (err) => console.error('Error listening DISHES_DOC_REF:', err)
-  );
+  const unsubs: (() => void)[] = [];
 
-  const unsub2 = onSnapshot(
-    DISHES_ALT_DOC_REF(),
-    (snap) => {
-      if (snap.exists()) {
-        const dishes = parseDishesFromSnapData(snap.data());
-        if (dishes && dishes.length > 0) callback(dishes);
-      }
-    },
-    (err) => console.error('Error listening DISHES_ALT_DOC_REF:', err)
-  );
+  const attachListenersToDb = (targetDb: any) => {
+    if (!targetDb) return;
+    unsubs.push(
+      onSnapshot(
+        doc(targetDb, 'settings', 'menu_dishes_list'),
+        (snap) => {
+          if (snap.exists()) {
+            const dishes = parseDishesFromSnapData(snap.data());
+            if (dishes && dishes.length > 0) callback(dishes);
+          }
+        },
+        (err) => console.error('Error listening settings/menu_dishes_list:', err)
+      )
+    );
 
-  const unsub3 = onSnapshot(
-    collection(db, 'menu_dishes_list'),
-    (colSnap) => {
-      if (!colSnap.empty) {
-        const collectedDishes: DishItem[] = [];
-        colSnap.docs.forEach((docSnap) => {
-          const parsed = parseDishesFromSnapData(docSnap.data());
-          if (parsed && parsed.length > 0) {
-            parsed.forEach((d) => {
-              if (!collectedDishes.some((item) => item.id === d.id)) {
-                collectedDishes.push(d);
+    unsubs.push(
+      onSnapshot(
+        doc(targetDb, 'menu_dishes_list', 'list'),
+        (snap) => {
+          if (snap.exists()) {
+            const dishes = parseDishesFromSnapData(snap.data());
+            if (dishes && dishes.length > 0) callback(dishes);
+          }
+        },
+        (err) => console.error('Error listening menu_dishes_list/list:', err)
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        collection(targetDb, 'menu_dishes_list'),
+        (colSnap) => {
+          if (!colSnap.empty) {
+            const collectedDishes: DishItem[] = [];
+            colSnap.docs.forEach((docSnap) => {
+              const parsed = parseDishesFromSnapData(docSnap.data());
+              if (parsed && parsed.length > 0) {
+                parsed.forEach((d) => {
+                  if (!collectedDishes.some((item) => item.id === d.id)) {
+                    collectedDishes.push(d);
+                  }
+                });
               }
             });
+            if (collectedDishes.length > 0) {
+              callback(collectedDishes);
+            }
           }
-        });
-        if (collectedDishes.length > 0) {
-          callback(collectedDishes);
-        }
-      }
-    },
-    (err) => console.error('Error listening collection menu_dishes_list:', err)
-  );
+        },
+        (err) => console.error('Error listening collection menu_dishes_list:', err)
+      )
+    );
+  };
+
+  attachListenersToDb(db);
+  if (defaultDb && defaultDb !== db) {
+    attachListenersToDb(defaultDb);
+  }
 
   return () => {
-    unsub1();
-    unsub2();
-    unsub3();
+    unsubs.forEach((unsub) => unsub());
   };
 }
 
@@ -182,8 +220,8 @@ export async function syncAdminPasswordToFirestore(password: string): Promise<vo
       updatedAt: new Date().toISOString(),
     };
     await Promise.allSettled([
-      setDoc(ADMIN_AUTH_DOC_REF(), payload),
-      setDoc(ADMIN_AUTH_ALT_DOC_REF(), payload),
+      dualSetDoc(['settings', 'admin_auth'], payload),
+      dualSetDoc(['admin_auth', 'main'], payload),
     ]);
   } catch (err) {
     console.error('Error syncing admin password to Firestore:', err);
@@ -241,14 +279,14 @@ export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean
     };
 
     const promises: Promise<any>[] = [
-      setDoc(DISHES_DOC_REF(), payload),
-      setDoc(DISHES_ALT_DOC_REF(), payload),
+      dualSetDoc(['settings', 'menu_dishes_list'], payload),
+      dualSetDoc(['menu_dishes_list', 'list'], payload),
     ];
 
     sanitizedDishes.forEach((dish: DishItem) => {
       if (dish && dish.id) {
         promises.push(
-          setDoc(doc(db, 'menu_dishes_list', dish.id), {
+          dualSetDoc(['menu_dishes_list', dish.id], {
             ...dish,
             updatedAt: new Date().toISOString(),
           })
@@ -311,8 +349,8 @@ export async function syncShopInfoToFirestore(shopInfo: ShopInfo): Promise<boole
       updatedAt: new Date().toISOString(),
     };
     await Promise.allSettled([
-      setDoc(SHOP_INFO_DOC_REF(), payload),
-      setDoc(SHOP_INFO_ALT_DOC_REF(), payload),
+      dualSetDoc(['settings', 'shop_info'], payload),
+      dualSetDoc(['shop_info', 'main'], payload),
     ]);
     console.log('Successfully synced shop info to Firestore');
     return true;
@@ -326,31 +364,44 @@ export async function syncShopInfoToFirestore(shopInfo: ShopInfo): Promise<boole
  * Real-time subscriber cho thông tin quán từ Firestore
  */
 export function subscribeShopInfoFromFirestore(callback: (info: ShopInfo) => void) {
-  const unsub1 = onSnapshot(
-    SHOP_INFO_DOC_REF(),
-    (snap) => {
-      if (snap.exists()) {
-        const info = parseShopInfoFromSnapData(snap.data());
-        if (info) callback(info);
-      }
-    },
-    (err) => console.error('Error listening SHOP_INFO_DOC_REF:', err)
-  );
+  const unsubs: (() => void)[] = [];
 
-  const unsub2 = onSnapshot(
-    SHOP_INFO_ALT_DOC_REF(),
-    (snap) => {
-      if (snap.exists()) {
-        const info = parseShopInfoFromSnapData(snap.data());
-        if (info) callback(info);
-      }
-    },
-    (err) => console.error('Error listening SHOP_INFO_ALT_DOC_REF:', err)
-  );
+  const attachShopListeners = (targetDb: any) => {
+    if (!targetDb) return;
+    unsubs.push(
+      onSnapshot(
+        doc(targetDb, 'settings', 'shop_info'),
+        (snap) => {
+          if (snap.exists()) {
+            const info = parseShopInfoFromSnapData(snap.data());
+            if (info) callback(info);
+          }
+        },
+        (err) => console.error('Error listening settings/shop_info:', err)
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        doc(targetDb, 'shop_info', 'main'),
+        (snap) => {
+          if (snap.exists()) {
+            const info = parseShopInfoFromSnapData(snap.data());
+            if (info) callback(info);
+          }
+        },
+        (err) => console.error('Error listening shop_info/main:', err)
+      )
+    );
+  };
+
+  attachShopListeners(db);
+  if (defaultDb && defaultDb !== db) {
+    attachShopListeners(defaultDb);
+  }
 
   return () => {
-    unsub1();
-    unsub2();
+    unsubs.forEach((unsub) => unsub());
   };
 }
 

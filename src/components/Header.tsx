@@ -12,7 +12,7 @@ interface HeaderProps {
   onOpenAddModal: () => void;
   onOpenShopInfoModal: () => void;
   onOpenWeeklyOverviewModal: () => void;
-  onOpenAdminModal: () => void;
+  onOpenAdminModal: (tab?: 'dishes' | 'shop' | 'password') => void;
   isAdminLoggedIn: boolean;
   onRequireAdminLogin: (onSuccess?: () => void) => void;
   onLogoutAdmin: () => void;
