@@ -29,6 +29,9 @@ export interface ShopInfo {
   contactPerson: string;
   openHours: string;
   slogan: string;
+  badgeText?: string;
+  notice?: string;
+  zaloUrl?: string;
   features: string[];
 }
 

@@ -25,6 +25,7 @@ import {
   subscribeDishesFromFirestore,
   loadShopInfoFromFirestore,
   syncShopInfoToFirestore,
+  subscribeShopInfoFromFirestore,
   loadAdminPasswordFromFirestore,
   syncAdminPasswordToFirestore,
 } from './lib/firebase';
@@ -77,25 +78,43 @@ export default function App() {
       if (cloudDishes && cloudDishes.length > 0) {
         setDishes(cloudDishes);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudDishes));
+      } else {
+        // Tự động đẩy dữ liệu danh sách món khởi tạo ban đầu lên Firestore
+        await syncDishesToFirestore(dishes);
       }
 
       const cloudShopInfo = await loadShopInfoFromFirestore();
       if (cloudShopInfo) {
         saveShopInfo(cloudShopInfo);
+      } else {
+        await syncShopInfoToFirestore(shopInfo);
       }
     }
     initFirestoreData();
 
     // Real-time listener: when any device adds or edits a dish or image, update state instantly
-    const unsubscribe = subscribeDishesFromFirestore((updatedDishes) => {
+    const unsubscribeDishes = subscribeDishesFromFirestore((updatedDishes) => {
       if (updatedDishes && updatedDishes.length > 0) {
-        setDishes(updatedDishes);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDishes));
+        setDishes((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(updatedDishes)) {
+            return prev;
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDishes));
+          return updatedDishes;
+        });
+      }
+    });
+
+    // Real-time listener: when any device edits shop info, update state instantly
+    const unsubscribeShop = subscribeShopInfoFromFirestore((updatedShopInfo) => {
+      if (updatedShopInfo) {
+        saveShopInfo(updatedShopInfo);
       }
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeDishes();
+      unsubscribeShop();
     };
   }, []);
 
@@ -383,11 +402,11 @@ export default function App() {
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-2xl">🪷</span>
                 <span className="font-serif font-black text-xl uppercase tracking-tighter text-[#1A1A1A]">
-                  AN TỊNH CHAY
+                  {shopInfo.name}
                 </span>
               </div>
               <p className="text-xs text-[#1A1A1A]/70 font-sans leading-relaxed max-w-xs">
-                {shopInfo.name} • Hệ thống quản lý thực đơn nội bộ & xôi chay cho nhân viên. Các món chính luân phiên đảm bảo hương vị thanh tịnh, tự nhiên.
+                {shopInfo.notice || shopInfo.slogan || 'Hệ thống quản lý thực đơn nội bộ & xôi chay cho nhân viên.'}
               </p>
             </div>
 
@@ -450,7 +469,7 @@ export default function App() {
           </div>
 
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-sans text-[#1A1A1A]/50">
-            <p>© {new Date().getFullYear()} An Tịnh Chay • Internal Kitchen Staff Menu System.</p>
+            <p>© {new Date().getFullYear()} {shopInfo.name} • Internal Kitchen Staff Menu System.</p>
             <p className="font-serif italic">Thanh Tịnh • An Nhiên • Dinh Dưỡng</p>
           </div>
         </div>

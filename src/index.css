@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @layer base {
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+  body, .font-sans {
+    font-family: 'UTM Avo', 'Montserrat', 'Nunito', 'Plus Jakarta Sans', sans-serif;
     background-color: #FDFCFB;
     color: #1A1A1A;
   }
 
   h1, h2, h3, h4, .font-serif {
-    font-family: 'Playfair Display', 'Lora', serif;
+    font-family: 'UTM Avo', 'Montserrat', sans-serif;
   }
 }
 

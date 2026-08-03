@@ -50,7 +50,8 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
           <div className="bg-[#F4F1EA] p-4 rounded-sm border-l-2 border-[#C05A3D] flex items-start gap-3">
             <Info className="w-5 h-5 text-[#C05A3D] shrink-0 mt-0.5" />
             <p className="text-xs leading-relaxed text-[#1A1A1A]/80 font-sans">
-              App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.
+              {shopInfo.notice ||
+                'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.'}
             </p>
           </div>
 

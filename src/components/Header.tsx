@@ -120,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
                     {shopInfo.name}
                   </h1>
                   <span className="font-sans text-[9px] sm:text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-sm bg-[#2D463E] text-white whitespace-nowrap">
-                    Bếp Nội Bộ
+                    {shopInfo.badgeText || 'Bếp Nội Bộ'}
                   </span>
                 </div>
                 <span className="font-sans text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-bold opacity-50 mt-0.5 hidden sm:block">

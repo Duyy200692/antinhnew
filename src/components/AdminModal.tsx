@@ -66,12 +66,36 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   // Shop Info Edit State
   const [formName, setFormName] = useState(shopInfo.name);
+  const [formBadgeText, setFormBadgeText] = useState(shopInfo.badgeText || 'Bếp Nội Bộ');
   const [formAddress, setFormAddress] = useState(shopInfo.address);
   const [formPhone, setFormPhone] = useState(shopInfo.phone);
   const [formContactPerson, setFormContactPerson] = useState(shopInfo.contactPerson);
   const [formOpenHours, setFormOpenHours] = useState(shopInfo.openHours);
   const [formSlogan, setFormSlogan] = useState(shopInfo.slogan);
+  const [formNotice, setFormNotice] = useState(
+    shopInfo.notice ||
+      'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.'
+  );
+  const [formZaloUrl, setFormZaloUrl] = useState(shopInfo.zaloUrl || '');
   const [shopSaveSuccess, setShopSaveSuccess] = useState(false);
+
+  // Synchronize form state whenever modal is opened or shopInfo updates
+  React.useEffect(() => {
+    if (isOpen) {
+      setFormName(shopInfo.name);
+      setFormBadgeText(shopInfo.badgeText || 'Bếp Nội Bộ');
+      setFormAddress(shopInfo.address);
+      setFormPhone(shopInfo.phone);
+      setFormContactPerson(shopInfo.contactPerson);
+      setFormOpenHours(shopInfo.openHours);
+      setFormSlogan(shopInfo.slogan);
+      setFormNotice(
+        shopInfo.notice ||
+          'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.'
+      );
+      setFormZaloUrl(shopInfo.zaloUrl || '');
+    }
+  }, [isOpen, shopInfo]);
 
   // Password Change State
   const [oldPass, setOldPass] = useState('');
@@ -109,11 +133,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     onSaveShopInfo({
       ...shopInfo,
       name: formName,
+      badgeText: formBadgeText,
       address: formAddress,
       phone: formPhone,
       contactPerson: formContactPerson,
       openHours: formOpenHours,
       slogan: formSlogan,
+      notice: formNotice,
+      zaloUrl: formZaloUrl,
     });
     setShopSaveSuccess(true);
     setTimeout(() => setShopSaveSuccess(false), 2500);
@@ -514,15 +541,28 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A]/70 mb-1">
-                  Tên Quán Chay *
+                  Tên Thương Hiệu / Quán *
                 </label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="VD: An Tịnh Chay"
+                  placeholder="VD: AN TỊNH - MENU CHAY NỘI BỘ"
                   required
                   className="w-full px-4 py-2.5 rounded-sm bg-[#F4F1EA] border border-black/10 text-[#1A1A1A] text-sm focus:outline-none focus:ring-1 focus:ring-[#C05A3D] font-serif font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A]/70 mb-1">
+                  Huy Hiệu Phân Loại Bếp
+                </label>
+                <input
+                  type="text"
+                  value={formBadgeText}
+                  onChange={(e) => setFormBadgeText(e.target.value)}
+                  placeholder="VD: Bếp Nội Bộ hoặc Quán Chay An Tịnh"
+                  className="w-full px-4 py-2.5 rounded-sm bg-[#F4F1EA] border border-black/10 text-[#1A1A1A] text-sm focus:outline-none focus:ring-1 focus:ring-[#C05A3D] font-sans"
                 />
               </div>
 
@@ -541,7 +581,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               <div>
                 <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A]/70 mb-1">
-                  Số Điện Thoại / Zalo Đặt Món
+                  Số Điện Thoại / Hotline Đặt Món
                 </label>
                 <input
                   type="text"
@@ -565,9 +605,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A]/70 mb-1">
+                  Đường Dẫn Zalo / Fanpage
+                </label>
+                <input
+                  type="text"
+                  value={formZaloUrl}
+                  onChange={(e) => setFormZaloUrl(e.target.value)}
+                  placeholder="VD: https://zalo.me/0909310567"
+                  className="w-full px-4 py-2.5 rounded-sm bg-[#F4F1EA] border border-black/10 text-[#1A1A1A] text-sm focus:outline-none focus:ring-1 focus:ring-[#C05A3D] font-sans"
+                />
+              </div>
+
               <div className="sm:col-span-2">
                 <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A]/70 mb-1">
-                  Địa Chỉ Quán
+                  Địa Chỉ Quán / Bếp Ăn
                 </label>
                 <input
                   type="text"
@@ -580,13 +633,26 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               <div className="sm:col-span-2">
                 <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A]/70 mb-1">
-                  Lời Chào / Slogan
+                  Lời Chào & Giới Thiệu Thương Hiệu (Slogan)
                 </label>
                 <textarea
                   rows={2}
                   value={formSlogan}
                   onChange={(e) => setFormSlogan(e.target.value)}
                   placeholder="VD: Chúc quý khách có một sức khoẻ tốt..."
+                  className="w-full px-4 py-2 rounded-sm bg-[#F4F1EA] border border-black/10 text-[#1A1A1A] text-sm focus:outline-none focus:ring-1 focus:ring-[#C05A3D] font-sans"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A]/70 mb-1">
+                  Thông Báo & Quy Chế Lưu Ý Cho Khách Hàng / Nhân Viên
+                </label>
+                <textarea
+                  rows={2}
+                  value={formNotice}
+                  onChange={(e) => setFormNotice(e.target.value)}
+                  placeholder="VD: Vui lòng báo số lượng suất trước 09h00 sáng để bếp chuẩn bị..."
                   className="w-full px-4 py-2 rounded-sm bg-[#F4F1EA] border border-black/10 text-[#1A1A1A] text-sm focus:outline-none focus:ring-1 focus:ring-[#C05A3D] font-sans"
                 />
               </div>

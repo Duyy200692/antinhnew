@@ -20,6 +20,10 @@ const ADMIN_AUTH_DOC_REF = () => doc(db, 'settings', 'admin_auth');
  */
 export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => void) {
   return onSnapshot(DISHES_DOC_REF(), (snap) => {
+    // Skip local write snapshots to prevent flickering feedback loop
+    if (snap.metadata.hasPendingWrites) {
+      return;
+    }
     if (snap.exists() && snap.data()?.list) {
       callback(snap.data().list as DishItem[]);
     }
@@ -113,4 +117,24 @@ export async function syncShopInfoToFirestore(shopInfo: ShopInfo): Promise<void>
   } catch (err) {
     console.error('Error syncing shop info to Firestore:', err);
   }
+}
+
+/**
+ * Real-time subscriber for shop info from Firestore
+ */
+export function subscribeShopInfoFromFirestore(callback: (info: ShopInfo) => void) {
+  return onSnapshot(
+    SHOP_INFO_DOC_REF(),
+    (snap) => {
+      if (snap.metadata.hasPendingWrites) {
+        return;
+      }
+      if (snap.exists() && snap.data()?.shopInfo) {
+        callback(snap.data().shopInfo as ShopInfo);
+      }
+    },
+    (err) => {
+      console.error('Error listening to shop info from Firestore:', err);
+    }
+  );
 }

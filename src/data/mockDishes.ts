@@ -1,4 +1,4 @@
-import { DishItem, DayConfig, CategoryConfig } from '../types';
+import { DishItem, DayConfig, CategoryConfig, ShopInfo } from '../types';
 
 export const DAYS_OF_WEEK: DayConfig[] = [
   { id: 'all', label: 'Cố định cả tuần', shortLabel: 'Cả tuần', description: 'Các món chay làm sẵn & xôi bánh bán mỗi ngày' },
@@ -479,13 +479,16 @@ export const INITIAL_DISHES: DishItem[] = [
   },
 ];
 
-export const SHOP_INFO = {
-  name: 'AN TỊNH - MENU CHAY NỘI BỘ & ĐẶC SẢN CHAY',
+export const SHOP_INFO: ShopInfo = {
+  name: 'AN TỊNH - MENU CHAY NỘI BỘ',
+  badgeText: 'Bếp Nội Bộ',
   address: '121/7 (nhà sau) Lê Thị Riêng, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
   phone: '0909 310 567',
   contactPerson: 'Ms. Bình',
   openHours: '06:30 - 20:30 (Thứ 2 - Chủ Nhật)',
   slogan: 'Chúc quý khách có một sức khoẻ tốt. Nơi cung cấp món chay làm sẵn & xôi nếp cái hoa vàng chuẩn vị.',
+  notice: 'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.',
+  zaloUrl: 'https://zalo.me/0909310567',
   features: [
     'Món chay làm sẵn từ nấm rừng Tây Bắc & sườn non lúa mạch',
     'Xôi chay làm từ nếp cái hoa vàng chuẩn vị',
