@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ShopInfo } from '../types';
 import { SHOP_INFO as DEFAULT_SHOP_INFO } from '../data/mockDishes';
+import { syncShopInfoToFirestore } from '../lib/firebase';
 
 const STORAGE_KEY = 'tam_chay_shop_info_v1';
 const EVENT_NAME = 'tam_chay_shop_info_updated';
@@ -21,8 +22,10 @@ export function saveStoredShopInfo(newInfo: ShopInfo): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newInfo));
     window.dispatchEvent(new Event(EVENT_NAME));
+    // Đồng bộ trực tiếp lên Firestore database
+    syncShopInfoToFirestore(newInfo);
   } catch (e) {
-    console.error('Failed to save shop info to localStorage', e);
+    console.error('Failed to save shop info to localStorage or Firestore', e);
   }
 }
 
@@ -30,6 +33,7 @@ export function resetShopInfoToDefault(): ShopInfo {
   try {
     localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new Event(EVENT_NAME));
+    syncShopInfoToFirestore(DEFAULT_SHOP_INFO);
   } catch (e) {
     console.error('Failed to reset shop info', e);
   }

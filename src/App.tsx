@@ -128,6 +128,15 @@ export default function App() {
     }
   }, [dishes]);
 
+  // Persist shopInfo whenever changed
+  useEffect(() => {
+    try {
+      syncShopInfoToFirestore(shopInfo);
+    } catch (e) {
+      console.error('Failed to save shop info to Firestore', e);
+    }
+  }, [shopInfo]);
+
   // Filter States
   const [selectedDay, setSelectedDay] = useState<DayOfWeek | 'today'>('today');
   const [selectedCategory, setSelectedCategory] = useState<DishCategory | 'all_categories'>('all_categories');
