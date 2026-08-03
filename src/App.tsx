@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { DishItem, DayOfWeek, DishCategory, ShopInfo } from './types';
 import { INITIAL_DISHES, SHOP_INFO as DEFAULT_SHOP_INFO } from './data/mockDishes';
 import {
@@ -29,7 +29,7 @@ import {
   loadAdminPasswordFromFirestore,
   syncAdminPasswordToFirestore,
 } from './lib/firebase';
-import { Sparkles, UtensilsCrossed, PlusCircle, RotateCcw, Calendar, PhoneCall, ShieldCheck, Lock, LogOut } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, PlusCircle, RotateCcw, Calendar, PhoneCall, ShieldCheck, Lock, LogOut, CheckCircle2, X } from 'lucide-react';
 
 const STORAGE_KEY = 'tam_chay_internal_menu_dishes_v1';
 const ADMIN_AUTH_SESSION_KEY = 'tam_chay_admin_logged_in_v1';
@@ -50,7 +50,16 @@ export default function App() {
 
   const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState<boolean>(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
-  const [pendingSuccessCallback, setPendingSuccessCallback] = useState<(() => void) | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const pendingSuccessCallbackRef = useRef<(() => void) | null>(null);
+
+  // Auto dismiss toast message
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   // Dishes state with local persistence
   const [dishes, setDishes] = useState<DishItem[]>(() => {
@@ -159,7 +168,7 @@ export default function App() {
     if (isAdminLoggedIn) {
       if (onSuccess) onSuccess();
     } else {
-      setPendingSuccessCallback(() => onSuccess || null);
+      pendingSuccessCallbackRef.current = onSuccess || null;
       setIsAdminLoginModalOpen(true);
     }
   }, [isAdminLoggedIn]);
@@ -556,16 +565,33 @@ export default function App() {
         isOpen={isAdminLoginModalOpen}
         onClose={() => {
           setIsAdminLoginModalOpen(false);
-          setPendingSuccessCallback(null);
+          pendingSuccessCallbackRef.current = null;
         }}
         onLogin={handleAdminLogin}
         onSuccess={() => {
-          if (pendingSuccessCallback) {
-            pendingSuccessCallback();
-            setPendingSuccessCallback(null);
+          setIsAdminLoginModalOpen(false);
+          setToastMessage('Đăng nhập Admin thành công! Đã bật quyền quản lý bếp.');
+          if (pendingSuccessCallbackRef.current) {
+            const cb = pendingSuccessCallbackRef.current;
+            pendingSuccessCallbackRef.current = null;
+            cb();
           }
         }}
       />
+
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-[#2D463E] text-white px-4 py-3 rounded-sm shadow-2xl border border-[#C05A3D]/40 flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-[#C05A3D] shrink-0" />
+          <span className="text-xs sm:text-sm font-sans font-bold">{toastMessage}</span>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="ml-2 text-white/60 hover:text-white cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

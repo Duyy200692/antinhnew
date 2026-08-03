@@ -31,10 +31,10 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     if (isSuccess) {
       setPassword('');
       setErrorMsg('');
-      onClose();
       if (onSuccess) {
         onSuccess();
       }
+      onClose();
     } else {
       setErrorMsg('Mật khẩu không chính xác. Vui lòng thử lại.');
     }
@@ -105,9 +105,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 <span>{errorMsg}</span>
               </div>
             )}
-            <p className="text-[11px] text-[#1A1A1A]/50 font-sans mt-1.5 italic">
-              * Mật khẩu mặc định: <code className="bg-[#E5E1D8] px-1 py-0.5 rounded text-[#C05A3D] font-mono font-bold">antinh123</code>
-            </p>
           </div>
 
           <div className="pt-2 flex items-center justify-end gap-3 border-t border-black/10">
