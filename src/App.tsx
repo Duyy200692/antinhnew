@@ -88,7 +88,20 @@ export default function App() {
         setDishes(cloudDishes);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudDishes));
       } else {
-        await syncDishesToFirestore(INITIAL_DISHES);
+        // Nếu Firestore chưa có, ưu tiên lấy dữ liệu đã chỉnh sửa từ localStorage
+        const savedLocal = localStorage.getItem(STORAGE_KEY);
+        let dishesToInitialSync = INITIAL_DISHES;
+        if (savedLocal) {
+          try {
+            const parsed = JSON.parse(savedLocal);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              dishesToInitialSync = parsed;
+            }
+          } catch (e) {
+            console.error('Error parsing savedLocal:', e);
+          }
+        }
+        await syncDishesToFirestore(dishesToInitialSync);
       }
 
       const cloudShopInfo = await loadShopInfoFromFirestore();
