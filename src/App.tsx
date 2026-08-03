@@ -208,8 +208,8 @@ export default function App() {
     if (e) {
       e.stopPropagation();
     }
-    setDishes((prev) =>
-      prev.map((dish) => {
+    setDishes((prev) => {
+      const updatedList = prev.map((dish) => {
         if (dish.id === dishId) {
           const updated = { ...dish, isAvailableToday: !dish.isAvailableToday };
           if (selectedDishForDetail?.id === dishId) {
@@ -218,23 +218,32 @@ export default function App() {
           return updated;
         }
         return dish;
-      })
-    );
+      });
+      syncDishesToFirestore(updatedList);
+      return updatedList;
+    });
   };
 
   const handleSaveDish = (savedDish: DishItem) => {
     setDishes((prev) => {
       const exists = prev.some((d) => d.id === savedDish.id);
+      let updatedList: DishItem[];
       if (exists) {
-        return prev.map((d) => (d.id === savedDish.id ? savedDish : d));
+        updatedList = prev.map((d) => (d.id === savedDish.id ? savedDish : d));
       } else {
-        return [savedDish, ...prev];
+        updatedList = [savedDish, ...prev];
       }
+      syncDishesToFirestore(updatedList);
+      return updatedList;
     });
   };
 
   const handleDeleteDish = (dishId: string) => {
-    setDishes((prev) => prev.filter((d) => d.id !== dishId));
+    setDishes((prev) => {
+      const updatedList = prev.filter((d) => d.id !== dishId);
+      syncDishesToFirestore(updatedList);
+      return updatedList;
+    });
     if (selectedDishForDetail?.id === dishId) {
       setSelectedDishForDetail(null);
     }

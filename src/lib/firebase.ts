@@ -20,10 +20,6 @@ const ADMIN_AUTH_DOC_REF = () => doc(db, 'settings', 'admin_auth');
  */
 export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => void) {
   return onSnapshot(DISHES_DOC_REF(), (snap) => {
-    // Skip local write snapshots to prevent flickering feedback loop
-    if (snap.metadata.hasPendingWrites) {
-      return;
-    }
     if (snap.exists() && snap.data()?.list) {
       callback(snap.data().list as DishItem[]);
     }
@@ -81,8 +77,10 @@ export async function loadDishesFromFirestore(): Promise<DishItem[] | null> {
  */
 export async function syncDishesToFirestore(dishes: DishItem[]): Promise<void> {
   try {
+    // Sanitize undefined fields which cause Firestore setDoc to fail silently
+    const sanitizedDishes = JSON.parse(JSON.stringify(dishes));
     await setDoc(DISHES_DOC_REF(), {
-      list: dishes,
+      list: sanitizedDishes,
       updatedAt: new Date().toISOString(),
     });
   } catch (err) {
@@ -110,8 +108,10 @@ export async function loadShopInfoFromFirestore(): Promise<ShopInfo | null> {
  */
 export async function syncShopInfoToFirestore(shopInfo: ShopInfo): Promise<void> {
   try {
+    // Sanitize undefined fields which cause Firestore setDoc to fail silently
+    const sanitizedInfo = JSON.parse(JSON.stringify(shopInfo));
     await setDoc(SHOP_INFO_DOC_REF(), {
-      shopInfo,
+      shopInfo: sanitizedInfo,
       updatedAt: new Date().toISOString(),
     });
   } catch (err) {
@@ -126,9 +126,6 @@ export function subscribeShopInfoFromFirestore(callback: (info: ShopInfo) => voi
   return onSnapshot(
     SHOP_INFO_DOC_REF(),
     (snap) => {
-      if (snap.metadata.hasPendingWrites) {
-        return;
-      }
       if (snap.exists() && snap.data()?.shopInfo) {
         callback(snap.data().shopInfo as ShopInfo);
       }
