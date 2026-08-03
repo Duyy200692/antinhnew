@@ -75,16 +75,19 @@ export async function loadDishesFromFirestore(): Promise<DishItem[] | null> {
 /**
  * Sync all dishes to Firestore
  */
-export async function syncDishesToFirestore(dishes: DishItem[]): Promise<void> {
+export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean> {
   try {
-    // Sanitize undefined fields which cause Firestore setDoc to fail silently
+    // Sanitize undefined fields which cause Firestore setDoc to fail
     const sanitizedDishes = JSON.parse(JSON.stringify(dishes));
     await setDoc(DISHES_DOC_REF(), {
       list: sanitizedDishes,
       updatedAt: new Date().toISOString(),
     });
+    console.log('Successfully synced dishes to Firestore:', sanitizedDishes.length);
+    return true;
   } catch (err) {
     console.error('Error syncing dishes to Firestore:', err);
+    return false;
   }
 }
 
@@ -106,16 +109,19 @@ export async function loadShopInfoFromFirestore(): Promise<ShopInfo | null> {
 /**
  * Sync shop info to Firestore
  */
-export async function syncShopInfoToFirestore(shopInfo: ShopInfo): Promise<void> {
+export async function syncShopInfoToFirestore(shopInfo: ShopInfo): Promise<boolean> {
   try {
-    // Sanitize undefined fields which cause Firestore setDoc to fail silently
+    // Sanitize undefined fields which cause Firestore setDoc to fail
     const sanitizedInfo = JSON.parse(JSON.stringify(shopInfo));
     await setDoc(SHOP_INFO_DOC_REF(), {
       shopInfo: sanitizedInfo,
       updatedAt: new Date().toISOString(),
     });
+    console.log('Successfully synced shop info to Firestore');
+    return true;
   } catch (err) {
     console.error('Error syncing shop info to Firestore:', err);
+    return false;
   }
 }
 

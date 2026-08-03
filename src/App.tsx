@@ -193,67 +193,100 @@ export default function App() {
   }, [dishes, selectedDay]);
 
   // Handlers for dish CRUD & stock toggle
-  const handleToggleStock = (dishId: string, e?: React.MouseEvent) => {
+  const handleToggleStock = async (dishId: string, note?: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
-    setDishes((prev) => {
-      const updatedList = prev.map((dish) => {
-        if (dish.id === dishId) {
-          const updated = { ...dish, isAvailableToday: !dish.isAvailableToday };
-          if (selectedDishForDetail?.id === dishId) {
-            setSelectedDishForDetail(updated);
-          }
-          return updated;
+    const updatedList = dishes.map((dish) => {
+      if (dish.id === dishId) {
+        const isAvailableToday = note !== undefined ? false : !dish.isAvailableToday;
+        const soldOutNote = note !== undefined ? note : isAvailableToday ? undefined : dish.soldOutNote;
+        const updated = { ...dish, isAvailableToday, soldOutNote };
+        if (selectedDishForDetail?.id === dishId) {
+          setSelectedDishForDetail(updated);
         }
-        return dish;
-      });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-      syncDishesToFirestore(updatedList);
-      return updatedList;
-    });
-  };
-
-  const handleSaveDish = (savedDish: DishItem) => {
-    setDishes((prev) => {
-      const exists = prev.some((d) => d.id === savedDish.id);
-      let updatedList: DishItem[];
-      if (exists) {
-        updatedList = prev.map((d) => (d.id === savedDish.id ? savedDish : d));
-      } else {
-        updatedList = [savedDish, ...prev];
+        return updated;
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-      syncDishesToFirestore(updatedList);
-      return updatedList;
+      return dish;
     });
+    setDishes(updatedList);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+    const synced = await syncDishesToFirestore(updatedList);
+    if (!synced) {
+      setToastMessage('⚠️ Đã cập nhật thiết bị này, nhưng chưa đồng bộ được Firebase.');
+    }
   };
 
-  const handleDeleteDish = (dishId: string) => {
-    setDishes((prev) => {
-      const updatedList = prev.filter((d) => d.id !== dishId);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-      syncDishesToFirestore(updatedList);
-      return updatedList;
-    });
+  const handleSaveDish = async (savedDish: DishItem) => {
+    const exists = dishes.some((d) => d.id === savedDish.id);
+    let updatedList: DishItem[];
+    if (exists) {
+      updatedList = dishes.map((d) => (d.id === savedDish.id ? savedDish : d));
+    } else {
+      updatedList = [savedDish, ...dishes];
+    }
+    setDishes(updatedList);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+
+    const synced = await syncDishesToFirestore(updatedList);
+    if (synced) {
+      setToastMessage(`Đã lưu & đồng bộ món "${savedDish.name}" thành công lên Firebase!`);
+    } else {
+      setToastMessage(`⚠️ Đã lưu món "${savedDish.name}", nhưng chưa đồng bộ Firebase.`);
+    }
+  };
+
+  const handleDeleteDish = async (dishId: string) => {
+    const targetDish = dishes.find((d) => d.id === dishId);
+    const updatedList = dishes.filter((d) => d.id !== dishId);
+    setDishes(updatedList);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+
     if (selectedDishForDetail?.id === dishId) {
       setSelectedDishForDetail(null);
+    }
+
+    const synced = await syncDishesToFirestore(updatedList);
+    if (synced) {
+      setToastMessage(`Đã xoá món "${targetDish?.name || ''}" & đồng bộ Firebase!`);
+    } else {
+      setToastMessage(`⚠️ Đã xoá trên máy, nhưng chưa đồng bộ Firebase.`);
     }
   };
 
   const handleResetToDefault = () => {
-    requireAdminLogin(() => {
+    requireAdminLogin(async () => {
       if (confirm('Khôi phục danh sách món ăn gốc ban đầu của quán An Tịnh?')) {
         setDishes(INITIAL_DISHES);
         localStorage.removeItem(STORAGE_KEY);
-        syncDishesToFirestore(INITIAL_DISHES);
+        const synced = await syncDishesToFirestore(INITIAL_DISHES);
+        if (synced) {
+          setToastMessage('Đã khôi phục menu gốc & đồng bộ Firebase!');
+        }
       }
     });
   };
 
-  const handleSaveShopInfoAndSync = (newInfo: ShopInfo) => {
+  const handleResetAllToAvailable = async () => {
+    if (confirm('Khôi phục tất cả các món thành "Sẵn có" hôm nay?')) {
+      const updatedList = dishes.map((d) => ({ ...d, isAvailableToday: true, soldOutNote: undefined }));
+      setDishes(updatedList);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+      const synced = await syncDishesToFirestore(updatedList);
+      if (synced) {
+        setToastMessage('Đã mở bếp ngày mới & đồng bộ tất cả món thành "Sẵn có"!');
+      }
+    }
+  };
+
+  const handleSaveShopInfoAndSync = async (newInfo: ShopInfo) => {
     saveShopInfo(newInfo);
-    syncShopInfoToFirestore(newInfo);
+    const synced = await syncShopInfoToFirestore(newInfo);
+    if (synced) {
+      setToastMessage('Đã cập nhật thông tin quán & đồng bộ Firebase!');
+    } else {
+      setToastMessage('⚠️ Đã lưu thông tin quán trên máy này, nhưng chưa đồng bộ Firebase.');
+    }
   };
 
   // Get current heading label for active day
@@ -512,11 +545,7 @@ export default function App() {
           setIsAddModalOpen(true);
         }}
         onDeleteDish={handleDeleteDish}
-        onResetAllToAvailable={() => {
-          if (confirm('Khôi phục tất cả các món thành "Sẵn có" hôm nay?')) {
-            setDishes((prev) => prev.map((d) => ({ ...d, isAvailableToday: true })));
-          }
-        }}
+        onResetAllToAvailable={handleResetAllToAvailable}
         shopInfo={shopInfo}
         onSaveShopInfo={handleSaveShopInfoAndSync}
         onResetShopInfo={resetShopInfo}
