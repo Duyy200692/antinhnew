@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { DishItem, ShopInfo } from '../types';
@@ -8,8 +8,8 @@ import { DishItem, ShopInfo } from '../types';
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Khởi tạo Firestore và Firebase Storage an toàn
-let primaryDb;
-let defaultDb;
+let primaryDb: any;
+let defaultDb: any;
 
 try {
   defaultDb = getFirestore(app);
@@ -32,17 +32,45 @@ try {
 export const db = primaryDb || defaultDb;
 export const storage = getStorage(app);
 
+// Helper function to clean object of undefined properties for Firestore safety
+function cleanPayload<T>(data: T): T {
+  if (data === undefined || data === null) return data;
+  return JSON.parse(JSON.stringify(data));
+}
+
 // Helper function to setDoc on both database instances (primary & default)
 async function dualSetDoc(pathSegments: string[], data: any): Promise<void> {
+  const safeData = cleanPayload(data);
   const tasks: Promise<any>[] = [];
   if (db) {
-    tasks.push(setDoc(doc(db, pathSegments[0], ...pathSegments.slice(1)), data));
+    tasks.push(setDoc(doc(db, pathSegments[0], ...pathSegments.slice(1)), safeData));
   }
   if (defaultDb && defaultDb !== db) {
     try {
-      tasks.push(setDoc(doc(defaultDb, pathSegments[0], ...pathSegments.slice(1)), data));
+      tasks.push(setDoc(doc(defaultDb, pathSegments[0], ...pathSegments.slice(1)), safeData));
     } catch (e) {
       // Ignore if defaultDb fails
+    }
+  }
+  const results = await Promise.allSettled(tasks);
+  const primaryRes = results[0];
+  if (primaryRes && primaryRes.status === 'rejected') {
+    console.error(`dualSetDoc failed on ${pathSegments.join('/')}:`, primaryRes.reason);
+    throw primaryRes.reason;
+  }
+}
+
+// Helper function to deleteDoc on both database instances
+async function dualDeleteDoc(pathSegments: string[]): Promise<void> {
+  const tasks: Promise<any>[] = [];
+  if (db) {
+    tasks.push(deleteDoc(doc(db, pathSegments[0], ...pathSegments.slice(1))));
+  }
+  if (defaultDb && defaultDb !== db) {
+    try {
+      tasks.push(deleteDoc(doc(defaultDb, pathSegments[0], ...pathSegments.slice(1))));
+    } catch (e) {
+      // Ignore
     }
   }
   await Promise.allSettled(tasks);
@@ -122,7 +150,7 @@ export function parseDishesFromSnapData(data: any): DishItem[] | null {
 
 /**
  * Real-time subscriber cho danh sách món ăn từ Firestore
- * Lắng nghe biến động đồng thời ở tất cả các vị trí để đảm bảo mọi thiết bị đều nhận dữ liệu ngay lập tức
+ * Lắng nghe biến động đồng thời ở các vị trí chính để đảm bảo mọi thiết bị đều nhận dữ liệu ngay lập tức
  */
 export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => void) {
   const unsubs: (() => void)[] = [];
@@ -152,31 +180,6 @@ export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => v
           }
         },
         (err) => console.error('Error listening menu_dishes_list/list:', err)
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        collection(targetDb, 'menu_dishes_list'),
-        (colSnap) => {
-          if (!colSnap.empty) {
-            const collectedDishes: DishItem[] = [];
-            colSnap.docs.forEach((docSnap) => {
-              const parsed = parseDishesFromSnapData(docSnap.data());
-              if (parsed && parsed.length > 0) {
-                parsed.forEach((d) => {
-                  if (!collectedDishes.some((item) => item.id === d.id)) {
-                    collectedDishes.push(d);
-                  }
-                });
-              }
-            });
-            if (collectedDishes.length > 0) {
-              callback(collectedDishes);
-            }
-          }
-        },
-        (err) => console.error('Error listening collection menu_dishes_list:', err)
       )
     );
   };
@@ -249,6 +252,7 @@ export async function loadDishesFromFirestore(): Promise<DishItem[] | null> {
     if (!colSnap.empty) {
       const collectedDishes: DishItem[] = [];
       colSnap.docs.forEach((docSnap) => {
+        if (docSnap.id === 'list') return;
         const parsed = parseDishesFromSnapData(docSnap.data());
         if (parsed && parsed.length > 0) {
           parsed.forEach((d) => {
@@ -272,7 +276,7 @@ export async function loadDishesFromFirestore(): Promise<DishItem[] | null> {
  */
 export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean> {
   try {
-    const sanitizedDishes = JSON.parse(JSON.stringify(dishes));
+    const sanitizedDishes = cleanPayload(dishes);
     const payload = {
       list: sanitizedDishes,
       updatedAt: new Date().toISOString(),
@@ -283,18 +287,38 @@ export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean
       dualSetDoc(['menu_dishes_list', 'list'], payload),
     ];
 
+    const currentIds = new Set<string>();
+
     sanitizedDishes.forEach((dish: DishItem) => {
       if (dish && dish.id) {
+        currentIds.add(dish.id);
+        const dishPayload = cleanPayload({
+          ...dish,
+          updatedAt: new Date().toISOString(),
+        });
         promises.push(
-          dualSetDoc(['menu_dishes_list', dish.id], {
-            ...dish,
-            updatedAt: new Date().toISOString(),
-          })
+          dualSetDoc(['menu_dishes_list', dish.id], dishPayload)
         );
       }
     });
 
-    await Promise.allSettled(promises);
+    // Delete stale dish documents from collection 'menu_dishes_list'
+    try {
+      const colSnap = await getDocs(collection(db, 'menu_dishes_list'));
+      colSnap.docs.forEach((docSnap) => {
+        if (docSnap.id !== 'list' && !currentIds.has(docSnap.id)) {
+          promises.push(dualDeleteDoc(['menu_dishes_list', docSnap.id]));
+        }
+      });
+    } catch (e) {
+      console.warn('Unable to clean stale dish documents from collection:', e);
+    }
+
+    const results = await Promise.allSettled(promises);
+    const rejected = results.filter((r) => r.status === 'rejected');
+    if (rejected.length > 0) {
+      console.warn('Some sync tasks failed:', rejected);
+    }
     console.log('Successfully synced dishes to Firestore across all locations:', sanitizedDishes.length);
     return true;
   } catch (err) {
