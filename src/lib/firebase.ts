@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { DishItem, ShopInfo } from '../types';
@@ -36,33 +36,69 @@ const ADMIN_AUTH_ALT_DOC_REF = () => doc(db, 'admin_auth', 'main');
 
 /**
  * Helper: Trích xuất danh sách dishes từ dữ liệu Firestore snapshot
- * Hỗ trợ cả { list: [...] }, mảng trực tiếp, hoặc object có key dạng chỉ số "0", "1"...
+ * Hỗ trợ cả { list: [...] }, mảng trực tiếp, object có key dạng chỉ số "0", "1"...,
+ * hoặc document có món thứ 0 nằm ở root kèm các món 1, 2, 3...
  */
 export function parseDishesFromSnapData(data: any): DishItem[] | null {
-  if (!data) return null;
+  if (!data || typeof data !== 'object') return null;
+
+  // Case 1: data.list là mảng
   if (Array.isArray(data.list) && data.list.length > 0) {
     return data.list as DishItem[];
   }
+
+  // Case 2: data.list là object chứa các món
+  if (data.list && typeof data.list === 'object') {
+    const listValues = Object.values(data.list).filter(
+      (item: any) => item && typeof item === 'object' && item.id && item.name
+    );
+    if (listValues.length > 0) {
+      return listValues as DishItem[];
+    }
+  }
+
+  // Case 3: data trực tiếp là mảng
   if (Array.isArray(data) && data.length > 0) {
     return data as DishItem[];
   }
-  if (typeof data === 'object') {
-    const keys = Object.keys(data).filter((k) => !isNaN(Number(k))).sort((a, b) => Number(a) - Number(b));
-    if (keys.length > 0) {
-      const items = keys
-        .map((k) => data[k])
-        .filter((item) => item && typeof item === 'object' && item.id && item.name);
-      if (items.length > 0) {
-        return items as DishItem[];
+
+  // Case 4: Món thứ 0 bị flatten ở root + các món 1, 2, 3... hoặc các object món riêng
+  const items: DishItem[] = [];
+
+  // Món 0 nằm ở root nếu có id & name
+  if (data.id && data.name && data.price) {
+    const rootDish: any = { ...data };
+    Object.keys(rootDish).forEach((key) => {
+      if (!isNaN(Number(key)) || key === 'updatedAt' || key === 'list' || key === 'shopInfo') {
+        delete rootDish[key];
       }
+    });
+    if (rootDish.id && rootDish.name) {
+      items.push(rootDish as DishItem);
     }
   }
+
+  // Lấy các món nằm trong các key con ("1", "2", "antinh-01", ...)
+  Object.keys(data).forEach((key) => {
+    if (key === 'list' || key === 'updatedAt' || key === 'shopInfo') return;
+    const val = data[key];
+    if (val && typeof val === 'object' && val.id && val.name && val.price) {
+      if (!items.some((d) => d.id === val.id)) {
+        items.push(val as DishItem);
+      }
+    }
+  });
+
+  if (items.length > 0) {
+    return items;
+  }
+
   return null;
 }
 
 /**
  * Real-time subscriber cho danh sách món ăn từ Firestore
- * Lắng nghe biến động đồng thời ở cả 2 đường dẫn để đảm bảo mọi thiết bị đều nhận dữ liệu ngay lập tức
+ * Lắng nghe biến động đồng thời ở tất cả các vị trí để đảm bảo mọi thiết bị đều nhận dữ liệu ngay lập tức
  */
 export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => void) {
   const unsub1 = onSnapshot(
@@ -70,9 +106,7 @@ export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => v
     (snap) => {
       if (snap.exists()) {
         const dishes = parseDishesFromSnapData(snap.data());
-        if (dishes && dishes.length > 0) {
-          callback(dishes);
-        }
+        if (dishes && dishes.length > 0) callback(dishes);
       }
     },
     (err) => console.error('Error listening DISHES_DOC_REF:', err)
@@ -83,17 +117,39 @@ export function subscribeDishesFromFirestore(callback: (dishes: DishItem[]) => v
     (snap) => {
       if (snap.exists()) {
         const dishes = parseDishesFromSnapData(snap.data());
-        if (dishes && dishes.length > 0) {
-          callback(dishes);
-        }
+        if (dishes && dishes.length > 0) callback(dishes);
       }
     },
     (err) => console.error('Error listening DISHES_ALT_DOC_REF:', err)
   );
 
+  const unsub3 = onSnapshot(
+    collection(db, 'menu_dishes_list'),
+    (colSnap) => {
+      if (!colSnap.empty) {
+        const collectedDishes: DishItem[] = [];
+        colSnap.docs.forEach((docSnap) => {
+          const parsed = parseDishesFromSnapData(docSnap.data());
+          if (parsed && parsed.length > 0) {
+            parsed.forEach((d) => {
+              if (!collectedDishes.some((item) => item.id === d.id)) {
+                collectedDishes.push(d);
+              }
+            });
+          }
+        });
+        if (collectedDishes.length > 0) {
+          callback(collectedDishes);
+        }
+      }
+    },
+    (err) => console.error('Error listening collection menu_dishes_list:', err)
+  );
+
   return () => {
     unsub1();
     unsub2();
+    unsub3();
   };
 }
 
@@ -144,10 +200,27 @@ export async function loadDishesFromFirestore(): Promise<DishItem[] | null> {
       const dishes = parseDishesFromSnapData(snap.data());
       if (dishes && dishes.length > 0) return dishes;
     }
+
     const altSnap = await getDoc(DISHES_ALT_DOC_REF());
     if (altSnap.exists()) {
       const dishes = parseDishesFromSnapData(altSnap.data());
       if (dishes && dishes.length > 0) return dishes;
+    }
+
+    const colSnap = await getDocs(collection(db, 'menu_dishes_list'));
+    if (!colSnap.empty) {
+      const collectedDishes: DishItem[] = [];
+      colSnap.docs.forEach((docSnap) => {
+        const parsed = parseDishesFromSnapData(docSnap.data());
+        if (parsed && parsed.length > 0) {
+          parsed.forEach((d) => {
+            if (!collectedDishes.some((item) => item.id === d.id)) {
+              collectedDishes.push(d);
+            }
+          });
+        }
+      });
+      if (collectedDishes.length > 0) return collectedDishes;
     }
   } catch (err) {
     console.error('Error loading dishes from Firestore:', err);
@@ -157,7 +230,7 @@ export async function loadDishesFromFirestore(): Promise<DishItem[] | null> {
 
 /**
  * Đồng bộ toàn bộ danh sách món ăn lên Firestore
- * Ghi đồng thời lên cả 2 vị trí để tất cả các phiên bản web/thiết bị đều cập nhật tức thì
+ * Ghi đồng thời lên tất cả các vị trí (settings/menu_dishes_list, menu_dishes_list/list, và từng document món)
  */
 export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean> {
   try {
@@ -166,11 +239,25 @@ export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean
       list: sanitizedDishes,
       updatedAt: new Date().toISOString(),
     };
-    await Promise.allSettled([
+
+    const promises: Promise<any>[] = [
       setDoc(DISHES_DOC_REF(), payload),
       setDoc(DISHES_ALT_DOC_REF(), payload),
-    ]);
-    console.log('Successfully synced dishes to Firestore:', sanitizedDishes.length);
+    ];
+
+    sanitizedDishes.forEach((dish: DishItem) => {
+      if (dish && dish.id) {
+        promises.push(
+          setDoc(doc(db, 'menu_dishes_list', dish.id), {
+            ...dish,
+            updatedAt: new Date().toISOString(),
+          })
+        );
+      }
+    });
+
+    await Promise.allSettled(promises);
+    console.log('Successfully synced dishes to Firestore across all locations:', sanitizedDishes.length);
     return true;
   } catch (err) {
     console.error('Error syncing dishes to Firestore:', err);
@@ -182,7 +269,7 @@ export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean
  * Helper: Parse shop info từ snapshot
  */
 export function parseShopInfoFromSnapData(data: any): ShopInfo | null {
-  if (!data) return null;
+  if (!data || typeof data !== 'object') return null;
   if (data.shopInfo && typeof data.shopInfo === 'object') {
     return data.shopInfo as ShopInfo;
   }
@@ -266,4 +353,5 @@ export function subscribeShopInfoFromFirestore(callback: (info: ShopInfo) => voi
     unsub2();
   };
 }
+
 
