@@ -317,6 +317,30 @@ export default function App() {
     }
   };
 
+  // Computed Featured Dishes for Today (Nổi bật hôm nay)
+  const todayFeaturedDishes = useMemo(() => {
+    const today = getTodayDayOfWeek();
+    return dishes.filter((dish) => {
+      // Must be available today
+      const matchesDay = dish.availableDays.includes('all') || dish.availableDays.includes(today);
+      if (!matchesDay) return false;
+      if (onlyAvailable && !dish.isAvailableToday) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = dish.name.toLowerCase().includes(q);
+        const matchesDesc = dish.description.toLowerCase().includes(q);
+        if (!matchesName && !matchesDesc) return false;
+      }
+      // Featured if marked as featured or if it's today's main dish
+      return dish.isFeatured || (dish.category === 'daily_main' && dish.availableDays.includes(today));
+    });
+  }, [dishes, onlyAvailable, searchQuery]);
+
+  // Computed Fixed Dishes (Danh mục món cố định bán cả tuần)
+  const fixedDishes = useMemo(() => {
+    return filterDishes(dishes, 'all', selectedCategory, searchQuery, onlyAvailable);
+  }, [dishes, selectedCategory, searchQuery, onlyAvailable]);
+
   // Get current heading label for active day
   const currentDayHeading = useMemo(() => {
     if (selectedDay === 'today') {
@@ -324,7 +348,7 @@ export default function App() {
       return `Thực Đơn Hôm Nay (${getDayLabel(today)})`;
     }
     if (selectedDay === 'all') {
-      return 'Món Làm Sẵn Cố Định Phục Vụ Cả Tuần';
+      return 'Danh Mục Món Cố Định (Bán Cả Tuần)';
     }
     return `Thực Đơn Áp Dụng: ${getDayLabel(selectedDay)}`;
   }, [selectedDay]);
@@ -370,21 +394,23 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 sm:pb-8">
         {/* Section Title Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 sm:gap-4 mb-4 pb-3 sm:mb-8 sm:pb-4 border-b border-black/10">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 sm:gap-4 mb-4 pb-3 sm:mb-6 sm:pb-4 border-b border-black/10">
           <div>
             <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
-              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#C05A3D]" />
-              <span className="font-sans text-[9px] sm:text-[10px] uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[#C05A3D] font-bold">
-                Thực Đơn Nội Bộ • {shopInfo.name}
+              <span className="w-2 h-2 rounded-full bg-[#C05A3D] animate-pulse" />
+              <span className="font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[#C05A3D] font-bold">
+                Thực Đơn Chay An Tịnh • Mobile Menu
               </span>
             </div>
-            <h2 className="font-serif text-xl sm:text-4xl font-black uppercase tracking-tight text-[#1A1A1A]">
+            <h2 className="font-serif text-xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-[#1A1A1A]">
               {currentDayHeading}
             </h2>
-            <p className="font-sans text-[11px] sm:text-xs text-[#1A1A1A]/60 mt-0.5 sm:mt-1 hidden sm:block">
-              Hiển thị món ăn chay, xôi gấc, xôi lá cẩm & các món bún phở theo lịch trong tuần.
+            <p className="font-sans text-xs text-[#1A1A1A]/70 mt-1">
+              {selectedDay === 'today'
+                ? 'Tổng hợp món chính nổi bật hôm nay và các danh mục món chay làm sẵn cố định cả tuần.'
+                : 'Menu chọn lọc món chay, xôi nếp cái hoa vàng & bánh mì chuẩn vị.'}
             </p>
           </div>
 
@@ -394,71 +420,175 @@ export default function App() {
               className="px-4 py-2 rounded-sm bg-[#F4F1EA] hover:bg-[#E5E1D8] text-[#1A1A1A] font-sans text-xs uppercase tracking-wider font-bold border border-black/10 flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Calendar className="w-4 h-4 text-[#C05A3D]" />
-              <span>Xem Toàn Bộ Lịch Tuần</span>
+              <span>Lịch Thực Đơn Tuần</span>
             </button>
           </div>
         </div>
 
-        {/* Dishes Grid */}
-        {filteredDishes.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredDishes.map((dish) => (
-              <DishCard
-                key={dish.id}
-                dish={dish}
-                onSelectDish={(d) => setSelectedDishForDetail(d)}
-                onToggleStock={handleToggleStock}
-                isAdminLoggedIn={isAdminLoggedIn}
-                onRequireAdminLogin={requireAdminLogin}
-              />
-            ))}
-          </div>
-        ) : (
-          /* Editorial Empty State */
-          <div className="bg-[#F4F1EA] rounded-lg border border-black/10 p-12 text-center max-w-lg mx-auto my-12">
-            <div className="w-16 h-16 rounded-full bg-[#E5E1D8] flex items-center justify-center mx-auto mb-4 text-[#C05A3D]">
-              <UtensilsCrossed className="w-8 h-8" />
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-2 uppercase tracking-tight">
-              Không tìm thấy món ăn nào
-            </h3>
-            <p className="font-sans text-xs text-[#1A1A1A]/70 mb-6 leading-relaxed">
-              {searchQuery
-                ? `Không có món chay nào khớp với từ khoá "${searchQuery}".`
-                : 'Thực đơn trong danh mục hoặc ngày được chọn hiện đang trống hoặc tạm hết món.'}
-            </p>
+        {/* ========================================================
+            PHẦN 1: 🔥 DANH MỤC MÓN NỔI BẬT HÔM NAY
+            ======================================================== */}
+        {(selectedDay === 'today' || selectedCategory === 'all_categories') && !searchQuery && (
+          <section className="mb-8 bg-[#F4F1EA]/80 rounded-xl p-3.5 sm:p-5 border border-[#C05A3D]/20 shadow-xs">
+            <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4 pb-2 border-b border-[#C05A3D]/15">
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-[#C05A3D] text-white flex items-center justify-center text-sm font-bold shadow-xs">
+                  🔥
+                </span>
+                <div>
+                  <h3 className="font-serif font-black text-lg sm:text-2xl text-[#1A1A1A] uppercase tracking-tight">
+                    Món Nổi Bật Hôm Nay ({getDayLabel(getTodayDayOfWeek())})
+                  </h3>
+                  <p className="font-sans text-[11px] sm:text-xs text-[#1A1A1A]/70">
+                    Món chính đặc sắc trong ngày & các món chay bán chạy nhất tại bếp
+                  </p>
+                </div>
+              </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {(searchQuery || selectedCategory !== 'all_categories' || onlyAvailable) && (
+              <span className="px-2.5 py-1 rounded-full bg-[#C05A3D] text-white font-sans text-[10px] uppercase font-bold tracking-wider hidden sm:inline-block">
+                Hôm nay ăn gì?
+              </span>
+            </div>
+
+            {todayFeaturedDishes.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {todayFeaturedDishes.map((dish) => (
+                  <DishCard
+                    key={`featured-${dish.id}`}
+                    dish={dish}
+                    onSelectDish={(d) => setSelectedDishForDetail(d)}
+                    onToggleStock={handleToggleStock}
+                    isAdminLoggedIn={isAdminLoggedIn}
+                    onRequireAdminLogin={requireAdminLogin}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[#1A1A1A]/60 italic py-2">
+                Hôm nay chưa có đánh dấu món nổi bật. Vui lòng xem danh sách các món bên dưới.
+              </p>
+            )}
+          </section>
+        )}
+
+        {/* ========================================================
+            PHẦN 2: 📌 DANH MỤC MÓN CỐ ĐỊNH & TOÀN BỘ MENU
+            ======================================================== */}
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-black/10">
+            <span className="w-7 h-7 rounded-full bg-[#2D463E] text-white flex items-center justify-center text-sm font-bold shadow-xs">
+              📌
+            </span>
+            <div>
+              <h3 className="font-serif font-black text-lg sm:text-2xl text-[#1A1A1A] uppercase tracking-tight">
+                {selectedDay === 'all'
+                  ? 'Danh Mục Món Cố Định (Phục Vụ Cả Tuần)'
+                  : 'Danh Sách Món Ăn'}
+              </h3>
+              <p className="font-sans text-[11px] sm:text-xs text-[#1A1A1A]/70">
+                Chà bông nấm Tây Bắc, Sườn non lúa mạch, Xôi bắp nếp cái hoa vàng, Bánh mì chay & Bánh ngũ cốc
+              </p>
+            </div>
+          </div>
+
+          {/* Main Filtered Dishes Grid */}
+          {filteredDishes.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              {filteredDishes.map((dish) => (
+                <DishCard
+                  key={dish.id}
+                  dish={dish}
+                  onSelectDish={(d) => setSelectedDishForDetail(d)}
+                  onToggleStock={handleToggleStock}
+                  isAdminLoggedIn={isAdminLoggedIn}
+                  onRequireAdminLogin={requireAdminLogin}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Editorial Empty State */
+            <div className="bg-[#F4F1EA] rounded-lg border border-black/10 p-8 sm:p-12 text-center max-w-lg mx-auto my-8">
+              <div className="w-14 h-14 rounded-full bg-[#E5E1D8] flex items-center justify-center mx-auto mb-3 text-[#C05A3D]">
+                <UtensilsCrossed className="w-7 h-7" />
+              </div>
+              <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#1A1A1A] mb-2 uppercase tracking-tight">
+                Không tìm thấy món ăn nào
+              </h3>
+              <p className="font-sans text-xs text-[#1A1A1A]/70 mb-5 leading-relaxed">
+                {searchQuery
+                  ? `Không có món chay nào khớp với từ khoá "${searchQuery}".`
+                  : 'Thực đơn trong danh mục hoặc ngày được chọn hiện đang trống hoặc tạm hết món.'}
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                {(searchQuery || selectedCategory !== 'all_categories' || onlyAvailable) && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('all_categories');
+                      setOnlyAvailable(false);
+                    }}
+                    className="px-4 py-2 rounded-sm bg-[#1A1A1A] hover:bg-[#2D463E] text-white font-sans text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer"
+                  >
+                    Xoá bộ lọc & tìm kiếm
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all_categories');
-                    setOnlyAvailable(false);
+                    requireAdminLogin(() => {
+                      setEditingDish(null);
+                      setIsAddModalOpen(true);
+                    });
                   }}
-                  className="px-5 py-2.5 rounded-sm bg-[#1A1A1A] hover:bg-[#2D463E] text-white font-sans text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-sm bg-[#C05A3D] hover:bg-[#A0452C] text-white font-sans text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  Xoá bộ lọc & tìm kiếm
+                  {!isAdminLoggedIn && <Lock className="w-3.5 h-3.5 text-white/80" />}
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Thêm món mới</span>
                 </button>
-              )}
-
-              <button
-                onClick={() => {
-                  requireAdminLogin(() => {
-                    setEditingDish(null);
-                    setIsAddModalOpen(true);
-                  });
-                }}
-                className="px-5 py-2.5 rounded-sm bg-[#C05A3D] hover:bg-[#A0452C] text-white font-sans text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                {!isAdminLoggedIn && <Lock className="w-4 h-4 text-white/80" />}
-                <PlusCircle className="w-4 h-4" />
-                <span>Thêm món mới ngay</span>
-              </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </section>
       </main>
+
+      {/* Sticky Bottom Action Bar for Mobile App Navigation */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1A1A1A] text-white py-2 px-3 border-t border-white/10 shadow-2xl flex items-center justify-around">
+        <a
+          href={`tel:${shopInfo.phone.replace(/[^0-9]/g, '')}`}
+          className="flex flex-col items-center gap-0.5 text-[#E5E1D8] hover:text-[#C05A3D] active:scale-95 transition-transform"
+        >
+          <PhoneCall className="w-4 h-4 text-[#C05A3D]" />
+          <span className="text-[10px] font-sans font-bold uppercase">Gọi điện</span>
+        </a>
+
+        <a
+          href={shopInfo.zaloUrl || `https://zalo.me/${shopInfo.phone.replace(/[^0-9]/g, '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center gap-0.5 text-[#E5E1D8] hover:text-[#C05A3D] active:scale-95 transition-transform"
+        >
+          <span className="w-4 h-4 rounded-full bg-blue-500 text-white font-black text-[9px] flex items-center justify-center">Z</span>
+          <span className="text-[10px] font-sans font-bold uppercase">Chat Zalo</span>
+        </a>
+
+        <button
+          onClick={() => setIsWeeklyOverviewModalOpen(true)}
+          className="flex flex-col items-center gap-0.5 text-[#E5E1D8] hover:text-[#C05A3D] active:scale-95 transition-transform cursor-pointer"
+        >
+          <Calendar className="w-4 h-4 text-[#C05A3D]" />
+          <span className="text-[10px] font-sans font-bold uppercase">Lịch tuần</span>
+        </button>
+
+        <button
+          onClick={() => setIsShopInfoModalOpen(true)}
+          className="flex flex-col items-center gap-0.5 text-[#E5E1D8] hover:text-[#C05A3D] active:scale-95 transition-transform cursor-pointer"
+        >
+          <Sparkles className="w-4 h-4 text-[#C05A3D]" />
+          <span className="text-[10px] font-sans font-bold uppercase">Bếp An Tịnh</span>
+        </button>
+      </div>
 
       {/* Editorial Footer */}
       <footer className="mt-auto bg-[#F4F1EA] border-t border-black/10 py-8 sm:py-10">

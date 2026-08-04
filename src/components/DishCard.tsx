@@ -65,9 +65,15 @@ export const DishCard: React.FC<DishCardProps> = ({
           />
 
           {/* Top-Left Category & Day Badges */}
-          <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 z-10">
+          <div className="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5 z-10">
+            {dish.isFeatured && (
+              <span className="font-sans text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-[#C05A3D] text-white font-black border border-white/20 shadow-md flex items-center gap-1">
+                <span>🔥</span>
+                <span>Nổi Bật</span>
+              </span>
+            )}
             <span
-              className={`font-sans text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-sm font-bold border shadow-xs ${getCategoryBadgeClass(
+              className={`font-sans text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm font-bold border shadow-xs ${getCategoryBadgeClass(
                 dish.category
               )}`}
             >
@@ -76,10 +82,10 @@ export const DishCard: React.FC<DishCardProps> = ({
 
             {isAllWeek ? (
               <span className="font-sans text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-[#1A1A1A] text-[#E5E1D8] font-bold border border-black/20 shadow-xs">
-                Cố định cả tuần
+                Cố định
               </span>
             ) : (
-              <span className="font-sans text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-[#C05A3D] text-white font-bold border border-black/20 shadow-xs">
+              <span className="font-sans text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-[#2D463E] text-white font-bold border border-black/20 shadow-xs">
                 {dish.availableDays.map((d) => getDayLabel(d)).join(', ')}
               </span>
             )}
@@ -110,28 +116,20 @@ export const DishCard: React.FC<DishCardProps> = ({
         </div>
 
         {/* Card Body */}
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-serif font-bold text-[#1A1A1A] text-lg leading-snug group-hover:text-[#C05A3D] transition-colors line-clamp-2">
+        <div className="p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <h3 className="font-serif font-bold text-[#1A1A1A] text-base sm:text-lg leading-snug group-hover:text-[#C05A3D] transition-colors line-clamp-2">
               {dish.name}
             </h3>
           </div>
 
-          <p className="font-sans text-[#1A1A1A]/70 text-xs leading-relaxed line-clamp-2 mb-4">
+          <p className="font-sans text-[#1A1A1A]/70 text-xs leading-relaxed line-clamp-2 mb-2">
             {dish.description}
           </p>
 
-          {/* Tags */}
-          <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            {dish.tags.slice(0, 3).map((tag, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-[#F4F1EA] text-[#1A1A1A]/80 text-[10px] font-sans uppercase tracking-wider font-semibold border border-black/5"
-              >
-                <Tag className="w-2.5 h-2.5 text-[#C05A3D]" />
-                <span>{tag}</span>
-              </span>
-            ))}
+          <div className="flex items-center gap-2 text-[11px] font-sans text-[#1A1A1A]/60">
+            <Clock className="w-3 h-3 text-[#C05A3D]" />
+            <span>Chuẩn bị: {dish.prepTime}</span>
           </div>
         </div>
       </div>
