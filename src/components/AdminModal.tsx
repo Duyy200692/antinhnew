@@ -95,28 +95,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [formZaloUrl, setFormZaloUrl] = useState(safeShopInfo.zaloUrl || '');
   const [shopSaveSuccess, setShopSaveSuccess] = useState(false);
 
-  // Synchronize form state when modal opens, and activeTab when initialTab or modal opens
-  const wasOpenRef = React.useRef(false);
+  // Synchronize form state when modal opens or when shopInfo prop updates
   React.useEffect(() => {
     if (isOpen) {
-      if (initialTab) {
-        setActiveTab(initialTab);
-      }
-      if (!wasOpenRef.current) {
-        const s = { ...DEFAULT_SHOP_INFO, ...(shopInfo || {}) };
-        setFormName(s.name || '');
-        setFormBadgeText(s.badgeText || 'Bếp Nội Bộ');
-        setFormAddress(s.address || '');
-        setFormPhone(s.phone || '');
-        setFormContactPerson(s.contactPerson || '');
-        setFormOpenHours(s.openHours || '');
-        setFormOrderHours(s.orderHours || '');
-        setFormSlogan(s.slogan || '');
-        setFormNotice(s.notice || '');
-        setFormZaloUrl(s.zaloUrl || '');
-      }
+      const s = { ...DEFAULT_SHOP_INFO, ...(shopInfo || {}) };
+      setFormName(s.name || '');
+      setFormBadgeText(s.badgeText || 'Bếp Nội Bộ');
+      setFormAddress(s.address || '');
+      setFormPhone(s.phone || '');
+      setFormContactPerson(s.contactPerson || '');
+      setFormOpenHours(s.openHours || '');
+      setFormOrderHours(s.orderHours || '');
+      setFormSlogan(s.slogan || '');
+      setFormNotice(s.notice || '');
+      setFormZaloUrl(s.zaloUrl || '');
     }
-    wasOpenRef.current = isOpen;
+  }, [isOpen, shopInfo]);
+
+  React.useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
   }, [isOpen, initialTab]);
 
   // Password Change State
