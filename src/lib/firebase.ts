@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { DishItem, ShopInfo } from '../types';
@@ -271,60 +271,75 @@ export async function loadDishesFromFirestore(): Promise<DishItem[] | null> {
 }
 
 /**
- * Đồng bộ toàn bộ danh sách món ăn lên Firestore
- * Ghi đồng thời lên tất cả các vị trí (settings/menu_dishes_list, menu_dishes_list/list, và từng document món)
+ * Cập nhật danh sách món ăn trực tiếp bằng updateDoc / setDoc lên Firestore
  */
-export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean> {
+export async function updateDishesListToFirebase(updatedList: DishItem[]): Promise<boolean> {
   try {
-    const sanitizedDishes = cleanPayload(dishes);
+    const sanitizedDishes = cleanPayload(updatedList);
     const payload = {
       list: sanitizedDishes,
       updatedAt: new Date().toISOString(),
     };
 
-    const promises: Promise<any>[] = [
-      dualSetDoc(['settings', 'menu_dishes_list'], payload),
-      dualSetDoc(['menu_dishes_list', 'list'], payload),
-    ];
+    // 1. Cập nhật menu_dishes_list/list
+    const ref1 = doc(db, 'menu_dishes_list', 'list');
+    try {
+      await updateDoc(ref1, payload);
+    } catch (e) {
+      await setDoc(ref1, payload);
+    }
 
+    // 2. Cập nhật settings/menu_dishes_list
+    const ref2 = doc(db, 'settings', 'menu_dishes_list');
+    try {
+      await updateDoc(ref2, payload);
+    } catch (e) {
+      await setDoc(ref2, payload);
+    }
+
+    // Nếu có defaultDb khác primaryDb, đẩy tiếp lên defaultDb
+    if (defaultDb && defaultDb !== db) {
+      const altRef1 = doc(defaultDb, 'menu_dishes_list', 'list');
+      const altRef2 = doc(defaultDb, 'settings', 'menu_dishes_list');
+      Promise.allSettled([
+        updateDoc(altRef1, payload).catch(() => setDoc(altRef1, payload)),
+        updateDoc(altRef2, payload).catch(() => setDoc(altRef2, payload)),
+      ]).catch(() => {});
+    }
+
+    // 3. Cập nhật song song từng document món riêng lẻ
     const currentIds = new Set<string>();
+    const itemPromises: Promise<any>[] = [];
 
     sanitizedDishes.forEach((dish: DishItem) => {
       if (dish && dish.id) {
         currentIds.add(dish.id);
-        const dishPayload = cleanPayload({
+        const itemPayload = cleanPayload({
           ...dish,
           updatedAt: new Date().toISOString(),
         });
-        promises.push(
-          dualSetDoc(['menu_dishes_list', dish.id], dishPayload)
+        const itemRef = doc(db, 'menu_dishes_list', dish.id);
+        itemPromises.push(
+          updateDoc(itemRef, itemPayload).catch(() => setDoc(itemRef, itemPayload))
         );
       }
     });
 
-    // Delete stale dish documents from collection 'menu_dishes_list'
-    try {
-      const colSnap = await getDocs(collection(db, 'menu_dishes_list'));
-      colSnap.docs.forEach((docSnap) => {
-        if (docSnap.id !== 'list' && !currentIds.has(docSnap.id)) {
-          promises.push(dualDeleteDoc(['menu_dishes_list', docSnap.id]));
-        }
-      });
-    } catch (e) {
-      console.warn('Unable to clean stale dish documents from collection:', e);
-    }
-
-    const results = await Promise.allSettled(promises);
-    const rejected = results.filter((r) => r.status === 'rejected');
-    if (rejected.length > 0) {
-      console.warn('Some sync tasks failed:', rejected);
-    }
-    console.log('Successfully synced dishes to Firestore across all locations:', sanitizedDishes.length);
+    await Promise.allSettled(itemPromises);
+    console.log('Successfully updated dishes list to Firebase via updateDoc:', sanitizedDishes.length);
     return true;
   } catch (err) {
-    console.error('Error syncing dishes to Firestore:', err);
+    console.error('Error in updateDishesListToFirebase:', err);
     return false;
   }
+}
+
+/**
+ * Đồng bộ toàn bộ danh sách món ăn lên Firestore
+ * Ghi đồng thời lên tất cả các vị trí (settings/menu_dishes_list, menu_dishes_list/list, và từng document món)
+ */
+export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean> {
+  return await updateDishesListToFirebase(dishes);
 }
 
 /**

@@ -33,6 +33,8 @@ interface AdminModalProps {
   dishes: DishItem[];
   onToggleStock: (dishId: string, soldOutNote?: string) => void;
   onEditDish: (dish: DishItem) => void;
+  onSaveDish?: (dish: DishItem) => void;
+  onSaveAllDishes?: (updatedList: DishItem[]) => void;
   onAddNewDish: () => void;
   onDeleteDish: (dishId: string) => void;
   onResetAllToAvailable: () => void;
@@ -50,6 +52,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   dishes,
   onToggleStock,
   onEditDish,
+  onSaveDish,
+  onSaveAllDishes,
   onAddNewDish,
   onDeleteDish,
   onResetAllToAvailable,
@@ -65,6 +69,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [stockFilter, setStockFilter] = useState<'all' | 'available' | 'sold_out'>('all');
   const [customNoteDishId, setCustomNoteDishId] = useState<string | null>(null);
   const [tempNoteText, setTempNoteText] = useState('');
+
+  // Inline Editing States for Dish Name & Price
+  const [editingInlineDishId, setEditingInlineDishId] = useState<string | null>(null);
+  const [inlineName, setInlineName] = useState('');
+  const [inlinePrice, setInlinePrice] = useState('');
+  const [inlineUnit, setInlineUnit] = useState('Phần');
+  const [inlineSaveStatus, setInlineSaveStatus] = useState<string | null>(null);
 
   // Shop Info Edit State
   const [formName, setFormName] = useState(shopInfo.name);
@@ -252,21 +263,52 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         {/* Tab 1: Dishes & Sold Out Early Manager */}
         {activeTab === 'dishes' && (
           <div className="p-6 overflow-y-auto flex-1 space-y-5">
+            {/* Sync Notification Banner */}
+            {inlineSaveStatus && (
+              <div className="px-4 py-2.5 rounded-sm bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-sans font-bold flex items-center justify-between animate-in fade-in duration-150">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[#C05A3D]" />
+                  <span>{inlineSaveStatus}</span>
+                </div>
+                <button onClick={() => setInlineSaveStatus(null)} className="text-emerald-700 hover:text-emerald-950">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {/* Action Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-sm bg-[#F4F1EA] border border-black/10">
               <div className="flex items-center gap-3">
                 <div className="text-xs font-sans">
-                  <p className="font-bold text-[#1A1A1A]">Khôi phục trạng thái đầu ngày</p>
+                  <p className="font-bold text-[#1A1A1A]">Khôi phục trạng thái & Đồng bộ Firebase</p>
                   <p className="text-[#1A1A1A]/70 text-[11px]">
-                    Đặt tất cả {dishes.length} món về trạng thái <span className="font-bold text-[#2D463E]">Có Sẵn</span> khi mở bếp sáng mới.
+                    Sửa tên món, giá bán trực tiếp trên bảng bên dưới và tự động đẩy mảng <code className="bg-black/10 px-1 py-0.5 rounded font-mono text-[10px]">list</code> lên Firebase.
                   </p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {onSaveAllDishes && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onSaveAllDishes) {
+                        setInlineSaveStatus('Đang đẩy dữ liệu lên Firebase...');
+                        onSaveAllDishes(dishes);
+                        setInlineSaveStatus(`✅ Đã đẩy toàn bộ ${dishes.length} món lên Firebase thành công!`);
+                        setTimeout(() => setInlineSaveStatus(null), 3000);
+                      }
+                    }}
+                    className="px-3 py-2 rounded-sm bg-[#1A1A1A] hover:bg-black text-white font-sans text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Đẩy toàn bộ mảng list lên Firebase document menu_dishes_list/list"
+                  >
+                    <Save className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Lưu Tất Cả Lên Firebase</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={onResetAllToAvailable}
-                  className="px-4 py-2 rounded-sm bg-[#2D463E] hover:bg-[#1f332d] text-white font-sans text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-2 rounded-sm bg-[#2D463E] hover:bg-[#1f332d] text-white font-sans text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5 text-[#C05A3D]" />
                   <span>Mở Bếp Ngày Mới (Sẵn có tất cả)</span>
@@ -274,7 +316,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 <button
                   type="button"
                   onClick={onAddNewDish}
-                  className="px-4 py-2 rounded-sm bg-[#C05A3D] hover:bg-[#a0452c] text-white font-sans text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-2 rounded-sm bg-[#C05A3D] hover:bg-[#a0452c] text-white font-sans text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
                   <span>Thêm Món Mới</span>
@@ -352,7 +394,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-[#F4F1EA] border-b border-black/10 font-sans text-[11px] font-bold uppercase tracking-wider text-[#1A1A1A]/70">
-                      <th className="py-3 px-4">Món ăn</th>
+                      <th className="py-3 px-4">Món ăn (Tên món)</th>
                       <th className="py-3 px-4">Danh mục / Ngày</th>
                       <th className="py-3 px-4">Giá bán</th>
                       <th className="py-3 px-4 text-center">Trạng thái bếp (Hết sớm / Có sẵn)</th>
@@ -361,155 +403,246 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </thead>
                   <tbody className="divide-y divide-black/5 font-sans text-sm">
                     {filteredDishes.length > 0 ? (
-                      filteredDishes.map((dish) => (
-                        <tr
-                          key={dish.id}
-                          className={`hover:bg-[#F4F1EA]/50 transition-colors ${
-                            !dish.isAvailableToday ? 'bg-amber-50/50' : ''
-                          }`}
-                        >
-                          {/* Dish Name + image thumbnail */}
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={dish.image}
-                                alt={dish.name}
-                                className="w-12 h-12 rounded-sm object-cover border border-black/10 shrink-0"
-                              />
-                              <div>
-                                <p className="font-serif font-bold text-[#1A1A1A] leading-snug">
-                                  {dish.name}
-                                </p>
-                                <p className="text-xs text-[#1A1A1A]/60 line-clamp-1">
-                                  {dish.description}
-                                </p>
+                      filteredDishes.map((dish) => {
+                        const isInlineEditing = editingInlineDishId === dish.id;
+
+                        return (
+                          <tr
+                            key={dish.id}
+                            className={`hover:bg-[#F4F1EA]/50 transition-colors ${
+                              !dish.isAvailableToday ? 'bg-amber-50/50' : ''
+                            }`}
+                          >
+                            {/* Dish Name + image thumbnail */}
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={dish.image}
+                                  alt={dish.name}
+                                  className="w-12 h-12 rounded-sm object-cover border border-black/10 shrink-0"
+                                />
+                                <div className="flex-1">
+                                  {isInlineEditing ? (
+                                    <div className="space-y-1">
+                                      <input
+                                        type="text"
+                                        value={inlineName}
+                                        onChange={(e) => setInlineName(e.target.value)}
+                                        placeholder="Nhập tên món ăn mới..."
+                                        className="w-full px-2 py-1 bg-amber-50 border border-[#C05A3D] rounded-sm font-serif font-bold text-sm text-[#1A1A1A] focus:outline-none"
+                                        autoFocus
+                                      />
+                                      <p className="text-[11px] text-[#C05A3D] font-sans">
+                                        Nhấn "Lưu Firebase" để cập nhật ngay.
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <p className="font-serif font-bold text-[#1A1A1A] leading-snug">
+                                        {dish.name}
+                                      </p>
+                                      <p className="text-xs text-[#1A1A1A]/60 line-clamp-1">
+                                        {dish.description}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* Category / Days */}
-                          <td className="py-3 px-4 text-xs">
-                            <span className="inline-block px-2 py-0.5 rounded-sm bg-[#F4F1EA] font-semibold text-[#1A1A1A] border border-black/10 mb-1">
-                              {getCategoryLabel(dish.category)}
-                            </span>
-                            <div className="text-[11px] text-[#1A1A1A]/60">
-                              {dish.availableDays.includes('all')
-                                ? 'Cố định cả tuần'
-                                : dish.availableDays.map((d) => getDayLabel(d)).join(', ')}
-                            </div>
-                          </td>
+                            {/* Category / Days */}
+                            <td className="py-3 px-4 text-xs">
+                              <span className="inline-block px-2 py-0.5 rounded-sm bg-[#F4F1EA] font-semibold text-[#1A1A1A] border border-black/10 mb-1">
+                                {getCategoryLabel(dish.category)}
+                              </span>
+                              <div className="text-[11px] text-[#1A1A1A]/60">
+                                {dish.availableDays.includes('all')
+                                  ? 'Cố định cả tuần'
+                                  : dish.availableDays.map((d) => getDayLabel(d)).join(', ')}
+                              </div>
+                            </td>
 
-                          {/* Price */}
-                          <td className="py-3 px-4 font-serif font-bold text-[#C05A3D] whitespace-nowrap">
-                            {dish.price}
-                            <span className="text-[11px] font-sans font-normal text-[#1A1A1A]/60 ml-1">
-                              / {dish.unit}
-                            </span>
-                          </td>
+                            {/* Price */}
+                            <td className="py-3 px-4 font-serif font-bold text-[#C05A3D] whitespace-nowrap">
+                              {isInlineEditing ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={inlinePrice}
+                                    onChange={(e) => setInlinePrice(e.target.value)}
+                                    placeholder="45.000đ"
+                                    className="w-24 px-2 py-1 bg-amber-50 border border-[#C05A3D] rounded-sm text-xs font-bold font-serif text-[#C05A3D] focus:outline-none"
+                                  />
+                                  <span className="text-[11px] font-sans text-black/60">/ {dish.unit}</span>
+                                </div>
+                              ) : (
+                                <>
+                                  {dish.price}
+                                  <span className="text-[11px] font-sans font-normal text-[#1A1A1A]/60 ml-1">
+                                    / {dish.unit}
+                                  </span>
+                                </>
+                              )}
+                            </td>
 
-                          {/* Stock Status + Early Sold Out Quick Notes */}
-                          <td className="py-3 px-4 text-center">
-                            <div className="flex flex-col items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => onToggleStock(dish.id)}
-                                className={`px-3 py-1.5 rounded-sm text-xs font-sans uppercase tracking-wider font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs ${
-                                  dish.isAvailableToday
-                                    ? 'bg-[#2D463E] text-white hover:bg-[#1f332d]'
-                                    : 'bg-[#C05A3D] text-white hover:bg-[#a0452c]'
-                                }`}
-                              >
-                                {dish.isAvailableToday ? (
+                            {/* Stock Status + Early Sold Out Quick Notes */}
+                            <td className="py-3 px-4 text-center">
+                              <div className="flex flex-col items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => onToggleStock(dish.id)}
+                                  className={`px-3 py-1.5 rounded-sm text-xs font-sans uppercase tracking-wider font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs ${
+                                    dish.isAvailableToday
+                                      ? 'bg-[#2D463E] text-white hover:bg-[#1f332d]'
+                                      : 'bg-[#C05A3D] text-white hover:bg-[#a0452c]'
+                                  }`}
+                                >
+                                  {dish.isAvailableToday ? (
+                                    <>
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>Đang Có Sẵn</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="w-3.5 h-3.5" />
+                                      <span>Đã Báo Tạm Hết</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {!dish.isAvailableToday && (
+                                  <div className="flex flex-wrap items-center justify-center gap-1 text-[10px]">
+                                    {dish.soldOutNote && (
+                                      <span className="px-2 py-0.5 rounded-sm bg-[#1A1A1A] text-white font-medium">
+                                        {dish.soldOutNote}
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setCustomNoteDishId(dish.id);
+                                        setTempNoteText(dish.soldOutNote || 'Hết sớm lúc 10h30');
+                                      }}
+                                      className="text-[#C05A3D] underline hover:text-[#1A1A1A] font-bold text-[10px] cursor-pointer"
+                                    >
+                                      + Ghi chú hết sớm
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Custom Sold Out Note Popover */}
+                                {customNoteDishId === dish.id && (
+                                  <div className="mt-1 p-2 bg-[#F4F1EA] rounded-sm border border-black/10 shadow-md flex items-center gap-1">
+                                    <input
+                                      type="text"
+                                      value={tempNoteText}
+                                      onChange={(e) => setTempNoteText(e.target.value)}
+                                      placeholder="VD: Hết xôi lúc 10h30"
+                                      className="px-2 py-1 text-xs rounded-sm border border-black/10 bg-white focus:outline-none focus:ring-1 focus:ring-[#C05A3D]"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickNoteSelect(dish.id, tempNoteText)}
+                                      className="px-2 py-1 bg-[#1A1A1A] text-white text-xs rounded-sm font-bold cursor-pointer"
+                                    >
+                                      Lưu
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setCustomNoteDishId(null)}
+                                      className="p-1 text-xs text-black/60 hover:text-black cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3 px-4 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {isInlineEditing ? (
                                   <>
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                    <span>Đang Có Sẵn</span>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (!inlineName.trim()) return;
+                                        const updatedDish: DishItem = {
+                                          ...dish,
+                                          name: inlineName.trim(),
+                                          price: inlinePrice.trim(),
+                                          unit: inlineUnit.trim() || dish.unit,
+                                        };
+                                        setEditingInlineDishId(null);
+                                        setInlineSaveStatus(`Đang lưu món "${updatedDish.name}" lên Firebase...`);
+                                        if (onSaveDish) {
+                                          await onSaveDish(updatedDish);
+                                        } else if (onSaveAllDishes) {
+                                          const newList = dishes.map((d) => (d.id === dish.id ? updatedDish : d));
+                                          await onSaveAllDishes(newList);
+                                        }
+                                        setInlineSaveStatus(`✅ Đã cập nhật "${updatedDish.name}" và đồng bộ Firebase!`);
+                                        setTimeout(() => setInlineSaveStatus(null), 3000);
+                                      }}
+                                      className="px-2.5 py-1.5 rounded-sm bg-[#C05A3D] hover:bg-[#a0452c] text-white font-sans text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer inline-flex items-center gap-1"
+                                    >
+                                      <Save className="w-3.5 h-3.5" />
+                                      <span>Lưu Firebase</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingInlineDishId(null)}
+                                      className="px-2 py-1.5 rounded-sm bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-sans font-bold cursor-pointer"
+                                    >
+                                      Hủy
+                                    </button>
                                   </>
                                 ) : (
                                   <>
-                                    <XCircle className="w-3.5 h-3.5" />
-                                    <span>Đã Báo Tạm Hết</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingInlineDishId(dish.id);
+                                        setInlineName(dish.name);
+                                        setInlinePrice(dish.price);
+                                        setInlineUnit(dish.unit || 'Phần');
+                                      }}
+                                      className="px-2.5 py-1.5 rounded-sm bg-amber-100 hover:bg-amber-200 text-[#C05A3D] font-sans text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer inline-flex items-center gap-1 border border-amber-300"
+                                      title="Sửa nhanh tên & giá ngay tại dòng này"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                      <span>Sửa Nhanh</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => onEditDish(dish)}
+                                      className="px-2 py-1.5 rounded-sm bg-[#F4F1EA] hover:bg-[#E5E1D8] text-[#1A1A1A] font-sans text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer inline-flex items-center gap-1"
+                                      title="Sửa chi tiết (Hình ảnh, danh mục, ngày bán)"
+                                    >
+                                      <span>Chi tiết</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (confirm(`Bạn muốn xoá món "${dish.name}" khỏi menu?`)) {
+                                          onDeleteDish(dish.id);
+                                        }
+                                      }}
+                                      className="p-1.5 rounded-sm bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                                      title="Xoá món"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
                                   </>
                                 )}
-                              </button>
-
-                              {!dish.isAvailableToday && (
-                                <div className="flex flex-wrap items-center justify-center gap-1 text-[10px]">
-                                  {dish.soldOutNote && (
-                                    <span className="px-2 py-0.5 rounded-sm bg-[#1A1A1A] text-white font-medium">
-                                      {dish.soldOutNote}
-                                    </span>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setCustomNoteDishId(dish.id);
-                                      setTempNoteText(dish.soldOutNote || 'Hết sớm lúc 10h30');
-                                    }}
-                                    className="text-[#C05A3D] underline hover:text-[#1A1A1A] font-bold text-[10px] cursor-pointer"
-                                  >
-                                    + Ghi chú hết sớm
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* Custom Sold Out Note Popover */}
-                              {customNoteDishId === dish.id && (
-                                <div className="mt-1 p-2 bg-[#F4F1EA] rounded-sm border border-black/10 shadow-md flex items-center gap-1">
-                                  <input
-                                    type="text"
-                                    value={tempNoteText}
-                                    onChange={(e) => setTempNoteText(e.target.value)}
-                                    placeholder="VD: Hết xôi lúc 10h30"
-                                    className="px-2 py-1 text-xs rounded-sm border border-black/10 bg-white focus:outline-none focus:ring-1 focus:ring-[#C05A3D]"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickNoteSelect(dish.id, tempNoteText)}
-                                    className="px-2 py-1 bg-[#1A1A1A] text-white text-xs rounded-sm font-bold cursor-pointer"
-                                  >
-                                    Lưu
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setCustomNoteDishId(null)}
-                                    className="p-1 text-xs text-black/60 hover:text-black cursor-pointer"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Actions */}
-                          <td className="py-3 px-4 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => onEditDish(dish)}
-                                className="px-2.5 py-1.5 rounded-sm bg-[#F4F1EA] hover:bg-[#E5E1D8] text-[#1A1A1A] font-sans text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer inline-flex items-center gap-1"
-                                title="Sửa thông tin món"
-                              >
-                                <Edit3 className="w-3.5 h-3.5 text-[#C05A3D]" />
-                                <span>Sửa</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm(`Bạn muốn xoá món "${dish.name}" khỏi menu?`)) {
-                                    onDeleteDish(dish.id);
-                                  }
-                                }}
-                                className="p-1.5 rounded-sm bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
-                                title="Xoá món"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-[#1A1A1A]/60">

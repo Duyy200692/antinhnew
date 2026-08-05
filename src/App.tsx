@@ -22,6 +22,7 @@ import { useShopInfo, saveStoredShopInfo } from './utils/shopInfoStorage';
 import {
   loadDishesFromFirestore,
   syncDishesToFirestore,
+  updateDishesListToFirebase,
   subscribeDishesFromFirestore,
   loadShopInfoFromFirestore,
   syncShopInfoToFirestore,
@@ -261,6 +262,17 @@ export default function App() {
       setToastMessage(`Đã lưu & đồng bộ món "${savedDish.name}" thành công lên Firebase!`);
     } else {
       setToastMessage(`⚠️ Đã lưu món "${savedDish.name}", nhưng chưa đồng bộ Firebase.`);
+    }
+  };
+
+  const handleSaveAllDishes = async (updatedList: DishItem[]) => {
+    setDishes(updatedList);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+    const synced = await updateDishesListToFirebase(updatedList);
+    if (synced) {
+      setToastMessage('✅ Đã đồng bộ thành công toàn bộ danh sách món ăn lên Firebase!');
+    } else {
+      setToastMessage('⚠️ Đã cập nhật trên máy, nhưng chưa đồng bộ được Firebase.');
     }
   };
 
@@ -690,6 +702,8 @@ export default function App() {
           setEditingDish(dish);
           setIsAddModalOpen(true);
         }}
+        onSaveDish={handleSaveDish}
+        onSaveAllDishes={handleSaveAllDishes}
         onAddNewDish={() => {
           setIsAdminModalOpen(false);
           setEditingDish(null);
