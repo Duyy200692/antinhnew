@@ -95,25 +95,29 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [formZaloUrl, setFormZaloUrl] = useState(safeShopInfo.zaloUrl || '');
   const [shopSaveSuccess, setShopSaveSuccess] = useState(false);
 
-  // Synchronize form state and activeTab whenever modal is opened or shopInfo updates
+  // Synchronize form state when modal opens, and activeTab when initialTab or modal opens
+  const wasOpenRef = React.useRef(false);
   React.useEffect(() => {
     if (isOpen) {
       if (initialTab) {
         setActiveTab(initialTab);
       }
-      const s = { ...DEFAULT_SHOP_INFO, ...(shopInfo || {}) };
-      setFormName(s.name);
-      setFormBadgeText(s.badgeText || 'Bếp Nội Bộ');
-      setFormAddress(s.address);
-      setFormPhone(s.phone);
-      setFormContactPerson(s.contactPerson);
-      setFormOpenHours(s.openHours);
-      setFormOrderHours(s.orderHours);
-      setFormSlogan(s.slogan);
-      setFormNotice(s.notice);
-      setFormZaloUrl(s.zaloUrl || '');
+      if (!wasOpenRef.current) {
+        const s = { ...DEFAULT_SHOP_INFO, ...(shopInfo || {}) };
+        setFormName(s.name || '');
+        setFormBadgeText(s.badgeText || 'Bếp Nội Bộ');
+        setFormAddress(s.address || '');
+        setFormPhone(s.phone || '');
+        setFormContactPerson(s.contactPerson || '');
+        setFormOpenHours(s.openHours || '');
+        setFormOrderHours(s.orderHours || '');
+        setFormSlogan(s.slogan || '');
+        setFormNotice(s.notice || '');
+        setFormZaloUrl(s.zaloUrl || '');
+      }
     }
-  }, [isOpen, shopInfo, initialTab]);
+    wasOpenRef.current = isOpen;
+  }, [isOpen, initialTab]);
 
   // Password Change State
   const [oldPass, setOldPass] = useState('');
@@ -150,16 +154,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     e.preventDefault();
     onSaveShopInfo({
       ...safeShopInfo,
-      name: formName || safeShopInfo.name,
-      badgeText: formBadgeText || 'Bếp Nội Bộ',
-      address: formAddress || safeShopInfo.address,
-      phone: formPhone || safeShopInfo.phone,
-      contactPerson: formContactPerson || safeShopInfo.contactPerson,
-      openHours: formOpenHours || safeShopInfo.openHours,
-      orderHours: formOrderHours || safeShopInfo.orderHours,
-      slogan: formSlogan || safeShopInfo.slogan,
-      notice: formNotice || safeShopInfo.notice,
-      zaloUrl: formZaloUrl || safeShopInfo.zaloUrl,
+      name: formName.trim() || safeShopInfo.name || DEFAULT_SHOP_INFO.name,
+      badgeText: formBadgeText.trim() || safeShopInfo.badgeText || 'Bếp Nội Bộ',
+      address: formAddress.trim() || safeShopInfo.address || DEFAULT_SHOP_INFO.address,
+      phone: formPhone.trim() || safeShopInfo.phone || DEFAULT_SHOP_INFO.phone,
+      contactPerson: formContactPerson.trim() || safeShopInfo.contactPerson || DEFAULT_SHOP_INFO.contactPerson,
+      openHours: formOpenHours.trim() || safeShopInfo.openHours || DEFAULT_SHOP_INFO.openHours,
+      orderHours: formOrderHours.trim() || safeShopInfo.orderHours || DEFAULT_SHOP_INFO.orderHours,
+      slogan: formSlogan.trim() || safeShopInfo.slogan || DEFAULT_SHOP_INFO.slogan,
+      notice: formNotice.trim() || safeShopInfo.notice || DEFAULT_SHOP_INFO.notice,
+      zaloUrl: formZaloUrl.trim() || safeShopInfo.zaloUrl || DEFAULT_SHOP_INFO.zaloUrl,
     });
     setShopSaveSuccess(true);
     setTimeout(() => setShopSaveSuccess(false), 2500);

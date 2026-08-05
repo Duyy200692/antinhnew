@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Phone, MapPin, Clock, ShieldCheck, HeartHandshake, Info, Store, ShoppingBag, Send, Check } from 'lucide-react';
+import { X, Phone, MapPin, Clock, ShieldCheck, HeartHandshake, Info, ShoppingBag, Send, Check, Edit3 } from 'lucide-react';
 import { SHOP_INFO as DEFAULT_SHOP_INFO } from '../data/mockDishes';
 import { ShopInfo } from '../types';
 
@@ -55,9 +55,24 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
               🪷
             </div>
             <div>
-              <h2 className="font-serif text-xl font-bold uppercase tracking-tight text-[#1A1A1A]">
-                {safeInfo.name}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-serif text-xl font-bold uppercase tracking-tight text-[#1A1A1A]">
+                  {safeInfo.name}
+                </h2>
+                {onOpenAdminModal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenAdminModal('shop');
+                    }}
+                    className="p-1 rounded bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] hover:text-[#C05A3D] transition-colors cursor-pointer"
+                    title="Chỉnh sửa tên & thông tin quán"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#C05A3D]" />
+                  </button>
+                )}
+              </div>
               <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-[#C05A3D] font-bold">
                 Quy Chế & Đặt Xôi Bếp Nội Bộ
               </p>
@@ -103,29 +118,74 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
         {activeSubTab === 'info' && (
           <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
             {/* Intro notice */}
-            <div className="bg-[#F4F1EA] p-4 rounded-sm border-l-2 border-[#C05A3D] flex items-start gap-3">
-              <Info className="w-5 h-5 text-[#C05A3D] shrink-0 mt-0.5" />
-              <p className="text-xs leading-relaxed text-[#1A1A1A]/80 font-sans">
-                {safeInfo.notice ||
-                  'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.'}
-              </p>
+            <div className="bg-[#F4F1EA] p-4 rounded-sm border-l-2 border-[#C05A3D] flex items-start justify-between gap-3 group">
+              <div className="flex items-start gap-3 flex-1">
+                <Info className="w-5 h-5 text-[#C05A3D] shrink-0 mt-0.5" />
+                <p className="text-xs leading-relaxed text-[#1A1A1A]/80 font-sans">
+                  {safeInfo.notice ||
+                    'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.'}
+                </p>
+              </div>
+              {onOpenAdminModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenAdminModal('shop');
+                  }}
+                  className="p-1.5 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] hover:text-[#C05A3D] transition-colors cursor-pointer shrink-0"
+                  title="Sửa thông báo nội bộ"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-[#C05A3D]" />
+                </button>
+              )}
             </div>
 
             {/* Key Details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5">
-                <div className="flex items-center gap-2 mb-2 text-xs font-sans uppercase tracking-wider font-bold text-[#C05A3D]">
-                  <Clock className="w-4 h-4" />
-                  <span>Giờ Bếp Mở Cửa</span>
+              <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5 relative group">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-xs font-sans uppercase tracking-wider font-bold text-[#C05A3D]">
+                    <Clock className="w-4 h-4" />
+                    <span>Giờ Bếp Mở Cửa</span>
+                  </div>
+                  {onOpenAdminModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenAdminModal('shop');
+                      }}
+                      className="p-1 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] hover:text-[#C05A3D] transition-colors cursor-pointer"
+                      title="Sửa giờ bếp mở cửa"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-[#C05A3D]" />
+                    </button>
+                  )}
                 </div>
                 <p className="text-sm font-serif font-bold text-[#1A1A1A]">{safeInfo.openHours}</p>
                 <p className="text-xs text-[#1A1A1A]/60 mt-1">Phục vụ các ngày trong tuần</p>
               </div>
 
-              <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5">
-                <div className="flex items-center gap-2 mb-2 text-xs font-sans uppercase tracking-wider font-bold text-[#C05A3D]">
-                  <Info className="w-4 h-4 text-[#C05A3D]" />
-                  <span>Thời Gian Báo Đặt Món</span>
+              <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5 relative group">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-xs font-sans uppercase tracking-wider font-bold text-[#C05A3D]">
+                    <Info className="w-4 h-4 text-[#C05A3D]" />
+                    <span>Thời Gian Báo Đặt Món</span>
+                  </div>
+                  {onOpenAdminModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenAdminModal('shop');
+                      }}
+                      className="p-1 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] hover:text-[#C05A3D] transition-colors cursor-pointer"
+                      title="Sửa thời gian báo đặt món"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-[#C05A3D]" />
+                    </button>
+                  )}
                 </div>
                 <p className="text-sm font-serif font-bold text-[#1A1A1A]">
                   {safeInfo.orderHours || 'Báo suất món chính trước 09h00 sáng hàng ngày'}
@@ -133,10 +193,25 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
                 <p className="text-xs text-[#1A1A1A]/60 mt-1">Báo số lượng sớm để bếp chuẩn bị</p>
               </div>
 
-              <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5 sm:col-span-2">
-                <div className="flex items-center gap-2 mb-2 text-xs font-sans uppercase tracking-wider font-bold text-[#2D463E]">
-                  <Phone className="w-4 h-4" />
-                  <span>Người Phụ Trách & Hotline</span>
+              <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5 sm:col-span-2 relative group">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-xs font-sans uppercase tracking-wider font-bold text-[#2D463E]">
+                    <Phone className="w-4 h-4" />
+                    <span>Người Phụ Trách & Hotline</span>
+                  </div>
+                  {onOpenAdminModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenAdminModal('shop');
+                      }}
+                      className="p-1 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] hover:text-[#C05A3D] transition-colors cursor-pointer"
+                      title="Sửa thông tin liên hệ / hotline"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-[#C05A3D]" />
+                    </button>
+                  )}
                 </div>
                 <p className="text-sm font-serif font-bold text-[#1A1A1A]">{safeInfo.contactPerson}</p>
                 <p className="text-xs text-[#1A1A1A]/80 font-mono mt-1">SĐT/Zalo đặt món: {safeInfo.phone}</p>
@@ -144,21 +219,51 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
             </div>
 
             {/* Address */}
-            <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5 flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-[#C05A3D] shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-xs font-sans uppercase tracking-wider font-bold text-[#1A1A1A] mb-1">
-                  Địa Chỉ Bếp Ăn
-                </h3>
-                <p className="text-sm text-[#1A1A1A]/80 font-serif">{safeInfo.address}</p>
+            <div className="p-4 bg-[#F4F1EA] rounded-sm border border-black/5 flex items-start justify-between gap-3 group">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-[#C05A3D] shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-xs font-sans uppercase tracking-wider font-bold text-[#1A1A1A] mb-1">
+                    Địa Chỉ Bếp Ăn
+                  </h3>
+                  <p className="text-sm text-[#1A1A1A]/80 font-serif">{safeInfo.address}</p>
+                </div>
               </div>
+              {onOpenAdminModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenAdminModal('shop');
+                  }}
+                  className="p-1.5 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] hover:text-[#C05A3D] transition-colors cursor-pointer shrink-0"
+                  title="Sửa địa chỉ bếp"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-[#C05A3D]" />
+                </button>
+              )}
             </div>
 
             {/* Policies / Notes */}
             <div className="border-t border-black/10 pt-4 space-y-3">
-              <h3 className="font-serif font-bold text-base text-[#1A1A1A] uppercase tracking-wide">
-                Lưu Ý Cho Nhân Viên & Đặt Món
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-serif font-bold text-base text-[#1A1A1A] uppercase tracking-wide">
+                  Lưu Ý Cho Nhân Viên & Đặt Món
+                </h3>
+                {onOpenAdminModal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenAdminModal('shop');
+                    }}
+                    className="p-1 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] hover:text-[#C05A3D] transition-colors cursor-pointer"
+                    title="Chỉnh sửa khẩu hiệu & ghi chú bếp"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#C05A3D]" />
+                  </button>
+                )}
+              </div>
 
               <div className="space-y-2 text-xs text-[#1A1A1A]/80">
                 <div className="flex items-start gap-2">
@@ -293,25 +398,14 @@ export const ShopInfoModal: React.FC<ShopInfoModalProps> = ({
 
         {/* Footer */}
         <div className="bg-[#F4F1EA] px-6 py-4 border-t border-black/10 flex items-center justify-between">
-          {onOpenAdminModal ? (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onOpenAdminModal('shop');
-              }}
-              className="px-4 py-2 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] font-sans uppercase tracking-wider font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Store className="w-4 h-4 text-[#C05A3D]" />
-              <span>Chỉnh Sửa Quán</span>
-            </button>
-          ) : (
-            <div />
-          )}
+          <div className="flex items-center gap-1.5 text-xs text-[#1A1A1A]/70 font-sans font-semibold">
+            <span className="w-2 h-2 rounded-full bg-[#2D463E] inline-block" />
+            <span>Bếp An Tịnh • Quy chế & Thông tin</span>
+          </div>
 
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-sm bg-[#1A1A1A] hover:bg-[#2D463E] text-white font-sans uppercase tracking-wider font-bold text-xs transition-colors cursor-pointer"
+            className="px-6 py-2 rounded-sm bg-[#1A1A1A] hover:bg-[#2D463E] text-white font-sans uppercase tracking-wider font-bold text-xs transition-colors cursor-pointer ml-auto"
           >
             Đã Hiểu & Đóng
           </button>

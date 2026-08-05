@@ -367,20 +367,37 @@ export function parseShopInfoFromSnapData(data: any): ShopInfo | null {
  * Tải thông tin quán từ Firestore
  */
 export async function loadShopInfoFromFirestore(): Promise<ShopInfo | null> {
-  try {
-    const snap = await getDoc(SHOP_INFO_DOC_REF());
-    if (snap.exists()) {
-      const info = parseShopInfoFromSnapData(snap.data());
-      if (info) return info;
+  const docPaths = [
+    ['settings', 'shop_info'],
+    ['shop_info', 'shopInfo'],
+    ['shop_info', 'shop_info'],
+    ['shop_info', 'main'],
+  ];
+
+  for (const path of docPaths) {
+    try {
+      const snap = await getDoc(doc(db, path[0], path[1]));
+      if (snap.exists()) {
+        const info = parseShopInfoFromSnapData(snap.data());
+        if (info) return info;
+      }
+    } catch (e) {
+      // Ignore individual read errors
     }
-    const altSnap = await getDoc(SHOP_INFO_ALT_DOC_REF());
-    if (altSnap.exists()) {
-      const info = parseShopInfoFromSnapData(altSnap.data());
-      if (info) return info;
-    }
-  } catch (err) {
-    console.error('Error loading shop info from Firestore:', err);
   }
+
+  try {
+    const colSnap = await getDocs(collection(db, 'shop_info'));
+    for (const d of colSnap.docs) {
+      if (d.exists()) {
+        const info = parseShopInfoFromSnapData(d.data());
+        if (info) return info;
+      }
+    }
+  } catch (e) {
+    // Ignore
+  }
+
   return null;
 }
 
@@ -392,13 +409,16 @@ export async function syncShopInfoToFirestore(shopInfo: ShopInfo): Promise<boole
     const sanitizedInfo = JSON.parse(JSON.stringify(shopInfo));
     const payload = {
       shopInfo: sanitizedInfo,
+      ...sanitizedInfo,
       updatedAt: new Date().toISOString(),
     };
     await Promise.allSettled([
       dualSetDoc(['settings', 'shop_info'], payload),
       dualSetDoc(['shop_info', 'main'], payload),
+      dualSetDoc(['shop_info', 'shopInfo'], payload),
+      dualSetDoc(['shop_info', 'shop_info'], payload),
     ]);
-    console.log('Successfully synced shop info to Firestore');
+    console.log('Successfully synced shop info to Firestore across all keys');
     return true;
   } catch (err) {
     console.error('Error syncing shop info to Firestore:', err);
@@ -414,29 +434,41 @@ export function subscribeShopInfoFromFirestore(callback: (info: ShopInfo) => voi
 
   const attachShopListeners = (targetDb: any) => {
     if (!targetDb) return;
-    unsubs.push(
-      onSnapshot(
-        doc(targetDb, 'settings', 'shop_info'),
-        (snap) => {
-          if (snap.exists()) {
-            const info = parseShopInfoFromSnapData(snap.data());
-            if (info) callback(info);
-          }
-        },
-        (err) => console.error('Error listening settings/shop_info:', err)
-      )
-    );
+
+    const docPaths = [
+      ['settings', 'shop_info'],
+      ['shop_info', 'shopInfo'],
+      ['shop_info', 'shop_info'],
+      ['shop_info', 'main'],
+    ];
+
+    docPaths.forEach(([col, docId]) => {
+      unsubs.push(
+        onSnapshot(
+          doc(targetDb, col, docId),
+          (snap) => {
+            if (snap.exists()) {
+              const info = parseShopInfoFromSnapData(snap.data());
+              if (info) callback(info);
+            }
+          },
+          (err) => console.error(`Error listening ${col}/${docId}:`, err)
+        )
+      );
+    });
 
     unsubs.push(
       onSnapshot(
-        doc(targetDb, 'shop_info', 'main'),
+        collection(targetDb, 'shop_info'),
         (snap) => {
-          if (snap.exists()) {
-            const info = parseShopInfoFromSnapData(snap.data());
-            if (info) callback(info);
-          }
+          snap.docs.forEach((d) => {
+            if (d.exists()) {
+              const info = parseShopInfoFromSnapData(d.data());
+              if (info) callback(info);
+            }
+          });
         },
-        (err) => console.error('Error listening shop_info/main:', err)
+        (err) => console.error('Error listening shop_info collection:', err)
       )
     );
   };
