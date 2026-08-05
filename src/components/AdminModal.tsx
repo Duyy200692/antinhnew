@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { DishItem, ShopInfo, DishCategory } from '../types';
-import { CATEGORIES, DAYS_OF_WEEK } from '../data/mockDishes';
+import { CATEGORIES, DAYS_OF_WEEK, SHOP_INFO as DEFAULT_SHOP_INFO } from '../data/mockDishes';
 import { getCategoryLabel, getDayLabel } from '../utils/dayUtils';
 import {
   X,
@@ -38,7 +38,7 @@ interface AdminModalProps {
   onAddNewDish: () => void;
   onDeleteDish: (dishId: string) => void;
   onResetAllToAvailable: () => void;
-  shopInfo: ShopInfo;
+  shopInfo?: ShopInfo;
   onSaveShopInfo: (info: ShopInfo) => void;
   onResetShopInfo: () => void;
   onLogoutAdmin: () => void;
@@ -49,7 +49,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   isOpen,
   onClose,
   initialTab = 'dishes',
-  dishes,
+  dishes = [],
   onToggleStock,
   onEditDish,
   onSaveDish,
@@ -57,12 +57,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   onAddNewDish,
   onDeleteDish,
   onResetAllToAvailable,
-  shopInfo,
+  shopInfo = DEFAULT_SHOP_INFO,
   onSaveShopInfo,
   onResetShopInfo,
   onLogoutAdmin,
   onChangeAdminPassword,
 }) => {
+  const safeShopInfo = useMemo(() => ({
+    ...DEFAULT_SHOP_INFO,
+    ...(shopInfo || {}),
+  }), [shopInfo]);
+
   const [activeTab, setActiveTab] = useState<'dishes' | 'shop' | 'password'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<DishCategory | 'all'>('all');
@@ -78,19 +83,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [inlineSaveStatus, setInlineSaveStatus] = useState<string | null>(null);
 
   // Shop Info Edit State
-  const [formName, setFormName] = useState(shopInfo.name);
-  const [formBadgeText, setFormBadgeText] = useState(shopInfo.badgeText || 'Bếp Nội Bộ');
-  const [formAddress, setFormAddress] = useState(shopInfo.address);
-  const [formPhone, setFormPhone] = useState(shopInfo.phone);
-  const [formContactPerson, setFormContactPerson] = useState(shopInfo.contactPerson);
-  const [formOpenHours, setFormOpenHours] = useState(shopInfo.openHours);
-  const [formOrderHours, setFormOrderHours] = useState(shopInfo.orderHours || 'Báo suất món chính trước 09h00 sáng | Đặt xôi & tiệc trước 1 ngày');
-  const [formSlogan, setFormSlogan] = useState(shopInfo.slogan);
-  const [formNotice, setFormNotice] = useState(
-    shopInfo.notice ||
-      'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.'
-  );
-  const [formZaloUrl, setFormZaloUrl] = useState(shopInfo.zaloUrl || '');
+  const [formName, setFormName] = useState(safeShopInfo.name);
+  const [formBadgeText, setFormBadgeText] = useState(safeShopInfo.badgeText || 'Bếp Nội Bộ');
+  const [formAddress, setFormAddress] = useState(safeShopInfo.address);
+  const [formPhone, setFormPhone] = useState(safeShopInfo.phone);
+  const [formContactPerson, setFormContactPerson] = useState(safeShopInfo.contactPerson);
+  const [formOpenHours, setFormOpenHours] = useState(safeShopInfo.openHours);
+  const [formOrderHours, setFormOrderHours] = useState(safeShopInfo.orderHours);
+  const [formSlogan, setFormSlogan] = useState(safeShopInfo.slogan);
+  const [formNotice, setFormNotice] = useState(safeShopInfo.notice);
+  const [formZaloUrl, setFormZaloUrl] = useState(safeShopInfo.zaloUrl || '');
   const [shopSaveSuccess, setShopSaveSuccess] = useState(false);
 
   // Synchronize form state and activeTab whenever modal is opened or shopInfo updates
@@ -99,21 +101,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       if (initialTab) {
         setActiveTab(initialTab);
       }
-      setFormName(shopInfo.name);
-      setFormBadgeText(shopInfo.badgeText || 'Bếp Nội Bộ');
-      setFormAddress(shopInfo.address);
-      setFormPhone(shopInfo.phone);
-      setFormContactPerson(shopInfo.contactPerson);
-      setFormOpenHours(shopInfo.openHours);
-      setFormOrderHours(shopInfo.orderHours || 'Báo suất món chính trước 09h00 sáng | Đặt xôi & tiệc trước 1 ngày');
-      setFormSlogan(shopInfo.slogan);
-      setFormNotice(
-        shopInfo.notice ||
-          'App nội bộ dành cho nhân viên xem thực đơn hàng ngày, đặt xôi, bánh mì chà bông chay và nắm lịch món chính luân phiên của bếp ăn theo từng thứ trong tuần.'
-      );
-      setFormZaloUrl(shopInfo.zaloUrl || '');
+      const s = { ...DEFAULT_SHOP_INFO, ...(shopInfo || {}) };
+      setFormName(s.name);
+      setFormBadgeText(s.badgeText || 'Bếp Nội Bộ');
+      setFormAddress(s.address);
+      setFormPhone(s.phone);
+      setFormContactPerson(s.contactPerson);
+      setFormOpenHours(s.openHours);
+      setFormOrderHours(s.orderHours);
+      setFormSlogan(s.slogan);
+      setFormNotice(s.notice);
+      setFormZaloUrl(s.zaloUrl || '');
     }
-  }, [isOpen, shopInfo]);
+  }, [isOpen, shopInfo, initialTab]);
 
   // Password Change State
   const [oldPass, setOldPass] = useState('');
@@ -149,17 +149,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const handleSaveShopForm = (e: React.FormEvent) => {
     e.preventDefault();
     onSaveShopInfo({
-      ...shopInfo,
-      name: formName,
-      badgeText: formBadgeText,
-      address: formAddress,
-      phone: formPhone,
-      contactPerson: formContactPerson,
-      openHours: formOpenHours,
-      orderHours: formOrderHours,
-      slogan: formSlogan,
-      notice: formNotice,
-      zaloUrl: formZaloUrl,
+      ...safeShopInfo,
+      name: formName || safeShopInfo.name,
+      badgeText: formBadgeText || 'Bếp Nội Bộ',
+      address: formAddress || safeShopInfo.address,
+      phone: formPhone || safeShopInfo.phone,
+      contactPerson: formContactPerson || safeShopInfo.contactPerson,
+      openHours: formOpenHours || safeShopInfo.openHours,
+      orderHours: formOrderHours || safeShopInfo.orderHours,
+      slogan: formSlogan || safeShopInfo.slogan,
+      notice: formNotice || safeShopInfo.notice,
+      zaloUrl: formZaloUrl || safeShopInfo.zaloUrl,
     });
     setShopSaveSuccess(true);
     setTimeout(() => setShopSaveSuccess(false), 2500);
@@ -182,7 +182,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-serif font-bold text-xl uppercase tracking-tight text-[#1A1A1A]">
-                  Trung Tâm Quản Trị Bếp • {shopInfo.name}
+                  Trung Tâm Quản Trị Bếp • {safeShopInfo.name}
                 </h2>
                 <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-sans font-bold uppercase tracking-wider border border-emerald-300">
                   🟢 Admin Active
@@ -818,23 +818,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => {
                   if (confirm('Khôi phục thông tin quán gốc ban đầu?')) {
                     onResetShopInfo();
-                    const defaultInfo = {
-                      name: 'An Tịnh Chay',
-                      address:
-                        '121/7 (nhà sau) Lê Thị Riêng, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
-                      phone: '0909 310 567',
-                      contactPerson: 'Ms. Bình',
-                      openHours: '06:30 - 20:30 (Thứ 2 - Chủ Nhật)',
-                      slogan:
-                        'Chúc quý khách có một sức khoẻ tốt. Nơi cung cấp món chay làm sẵn & xôi nếp cái hoa vàng chuẩn vị.',
-                      features: [],
-                    };
-                    setFormName(defaultInfo.name);
-                    setFormAddress(defaultInfo.address);
-                    setFormPhone(defaultInfo.phone);
-                    setFormContactPerson(defaultInfo.contactPerson);
-                    setFormOpenHours(defaultInfo.openHours);
-                    setFormSlogan(defaultInfo.slogan);
+                    const d = DEFAULT_SHOP_INFO;
+                    setFormName(d.name);
+                    setFormBadgeText(d.badgeText || 'Bếp Nội Bộ');
+                    setFormAddress(d.address);
+                    setFormPhone(d.phone);
+                    setFormContactPerson(d.contactPerson);
+                    setFormOpenHours(d.openHours);
+                    setFormOrderHours(d.orderHours);
+                    setFormSlogan(d.slogan);
+                    setFormNotice(d.notice);
+                    setFormZaloUrl(d.zaloUrl || '');
                   }
                 }}
                 className="px-4 py-2 rounded-sm bg-[#E5E1D8] hover:bg-[#D9D1C2] text-[#1A1A1A] text-xs font-sans uppercase tracking-wider font-bold transition-colors cursor-pointer"

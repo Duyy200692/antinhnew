@@ -3,6 +3,7 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, co
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { DishItem, ShopInfo } from '../types';
+import { SHOP_INFO as DEFAULT_SHOP_INFO } from '../data/mockDishes';
 
 // Khởi tạo Firebase App & Services từ cấu hình Firebase JSON
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -347,11 +348,17 @@ export async function syncDishesToFirestore(dishes: DishItem[]): Promise<boolean
  */
 export function parseShopInfoFromSnapData(data: any): ShopInfo | null {
   if (!data || typeof data !== 'object') return null;
+  let rawInfo: any = null;
   if (data.shopInfo && typeof data.shopInfo === 'object') {
-    return data.shopInfo as ShopInfo;
+    rawInfo = data.shopInfo;
+  } else if (data.name || data.phone) {
+    rawInfo = data;
   }
-  if (data.name && data.phone) {
-    return data as ShopInfo;
+  if (rawInfo) {
+    return {
+      ...DEFAULT_SHOP_INFO,
+      ...rawInfo,
+    };
   }
   return null;
 }

@@ -319,6 +319,15 @@ export default function App() {
     }
   };
 
+  // Safe shop info fallback
+  const safeShopInfo: ShopInfo = useMemo(() => ({
+    ...DEFAULT_SHOP_INFO,
+    ...(shopInfo || {}),
+  }), [shopInfo]);
+
+  const safePhone = safeShopInfo.phone || '0909 310 567';
+  const safePhoneClean = safePhone.replace(/[^0-9]/g, '');
+
   const handleSaveShopInfoAndSync = async (newInfo: ShopInfo) => {
     saveShopInfo(newInfo);
     const synced = await syncShopInfoToFirestore(newInfo);
@@ -568,7 +577,7 @@ export default function App() {
       {/* Sticky Bottom Action Bar for Mobile App Navigation */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1A1A1A] text-white py-2 px-3 border-t border-white/10 shadow-2xl flex items-center justify-around">
         <a
-          href={`tel:${shopInfo.phone.replace(/[^0-9]/g, '')}`}
+          href={`tel:${safePhoneClean}`}
           className="flex flex-col items-center gap-0.5 text-[#E5E1D8] hover:text-[#C05A3D] active:scale-95 transition-transform"
         >
           <PhoneCall className="w-4 h-4 text-[#C05A3D]" />
@@ -576,7 +585,7 @@ export default function App() {
         </a>
 
         <a
-          href={shopInfo.zaloUrl || `https://zalo.me/${shopInfo.phone.replace(/[^0-9]/g, '')}`}
+          href={safeShopInfo.zaloUrl || `https://zalo.me/${safePhoneClean}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex flex-col items-center gap-0.5 text-[#E5E1D8] hover:text-[#C05A3D] active:scale-95 transition-transform"
@@ -611,11 +620,11 @@ export default function App() {
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-2xl">🪷</span>
                 <span className="font-serif font-black text-xl uppercase tracking-tighter text-[#1A1A1A]">
-                  {shopInfo.name}
+                  {safeShopInfo.name}
                 </span>
               </div>
               <p className="text-xs text-[#1A1A1A]/70 font-sans leading-relaxed max-w-md">
-                {shopInfo.notice || shopInfo.slogan || 'Hệ thống thực đơn chay & xôi nếp cái hoa vàng cho nhân viên.'}
+                {safeShopInfo.notice || safeShopInfo.slogan || 'Hệ thống thực đơn chay & xôi nếp cái hoa vàng cho nhân viên.'}
               </p>
             </div>
 
@@ -626,23 +635,23 @@ export default function App() {
               </h4>
               <ul className="space-y-2 text-xs font-sans text-[#1A1A1A]/80">
                 <li>
-                  <span className="font-bold">Giờ mở cửa:</span> {shopInfo.openHours}
+                  <span className="font-bold">Giờ mở cửa:</span> {safeShopInfo.openHours}
                 </li>
                 <li>
-                  <span className="font-bold">Thời gian đặt món:</span> {shopInfo.orderHours || 'Báo suất món chính trước 09h00 sáng hàng ngày'}
+                  <span className="font-bold">Thời gian đặt món:</span> {safeShopInfo.orderHours || 'Báo suất món chính trước 09h00 sáng hàng ngày'}
                 </li>
                 <li>
-                  <span className="font-bold">Người phụ trách:</span> {shopInfo.contactPerson} ({shopInfo.phone})
+                  <span className="font-bold">Người phụ trách:</span> {safeShopInfo.contactPerson} ({safeShopInfo.phone})
                 </li>
                 <li>
-                  <span className="font-bold">Địa chỉ:</span> {shopInfo.address}
+                  <span className="font-bold">Địa chỉ:</span> {safeShopInfo.address}
                 </li>
               </ul>
             </div>
           </div>
 
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-sans text-[#1A1A1A]/50">
-            <p>© {new Date().getFullYear()} {shopInfo.name} • Internal Kitchen Staff Menu System.</p>
+            <p>© {new Date().getFullYear()} {safeShopInfo.name} • Internal Kitchen Staff Menu System.</p>
             <p className="font-serif italic">Thanh Tịnh • An Nhiên • Dinh Dưỡng</p>
           </div>
         </div>

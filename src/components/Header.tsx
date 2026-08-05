@@ -35,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   shopInfo = DEFAULT_SHOP_INFO,
   totalDishesCount,
 }) => {
+  const safeShopInfo = { ...DEFAULT_SHOP_INFO, ...(shopInfo || {}) };
   const todayDay = getTodayDayOfWeek();
   const todayLabel = getDayLabel(todayDay);
 
@@ -61,9 +62,9 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
           <div className="flex items-center gap-1.5 sm:gap-2 text-[#1A1A1A]/80 overflow-hidden text-ellipsis whitespace-nowrap">
             <span className="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#C05A3D] animate-pulse shrink-0" />
-            <span className="font-serif font-bold tracking-wide text-xs sm:text-sm">{shopInfo.name}</span>
+            <span className="font-serif font-bold tracking-wide text-xs sm:text-sm">{safeShopInfo.name}</span>
             <span className="hidden sm:inline opacity-40">•</span>
-            <span className="hidden sm:inline font-sans text-[11px] uppercase tracking-wider text-[#1A1A1A]/70">LH: {shopInfo.contactPerson} ({shopInfo.phone})</span>
+            <span className="hidden sm:inline font-sans text-[11px] uppercase tracking-wider text-[#1A1A1A]/70">LH: {safeShopInfo.contactPerson} ({safeShopInfo.phone})</span>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
@@ -117,10 +118,10 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <h1 className="text-lg sm:text-3xl font-serif font-black uppercase tracking-tighter leading-none text-[#1A1A1A]">
-                    {shopInfo.name}
+                    {safeShopInfo.name}
                   </h1>
                   <span className="font-sans text-[9px] sm:text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-sm bg-[#2D463E] text-white whitespace-nowrap">
-                    {shopInfo.badgeText || 'Bếp Nội Bộ'}
+                    {safeShopInfo.badgeText || 'Bếp Nội Bộ'}
                   </span>
                 </div>
                 <span className="font-sans text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-bold opacity-50 mt-0.5 hidden sm:block">
