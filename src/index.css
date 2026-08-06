@@ -1,23 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Montserrat', sans-serif;
-  --font-serif: 'Montserrat', sans-serif;
+  --font-sans: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Lora', 'Playfair Display', Georgia, serif;
 }
 
 @layer base {
   *, ::before, ::after {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 
   html, body {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif;
     background-color: #FDFCFB;
     color: #1A1A1A;
+    -webkit-font-smoothing: antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-serif, .font-sans {
-    font-family: 'Montserrat', sans-serif;
+  h1, h2, h3, h4, h5, h6, .font-serif {
+    font-family: 'Lora', 'Playfair Display', Georgia, serif;
+  }
+
+  .font-sans {
+    font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 }
 
